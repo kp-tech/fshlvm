@@ -14,6 +14,9 @@ Commerce friendly
 The virtual machine is written in F# and uses the LLVM library for high-performance  
 code generation.  
 
+More information about FsHlvm project are be available at:
+http://www.kp-tech.hu/en/products/fshlvm-opensource
+
 This work is based HLVM, written by Jon Harrop, Flying Frog Consultancy Ltd.  
 More information about HLVM are available at: http://www.ffconsultancy.com/ocaml/hlvm/  
 
