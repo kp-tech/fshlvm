@@ -1,2 +1,2 @@
-#### 1.0 - Augustus 23 2014
+#### 1.0 - Augustus 22 2014
 * Initial release
