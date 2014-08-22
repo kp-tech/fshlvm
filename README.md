@@ -2,20 +2,20 @@
 
 FsHlvm is a cross-platform open-source virtual machine with the following features:
 
-High-level DSL like language based on F#
-Safe
-Generics and type specialization
-Garbage collected
-High performance
-Multicore support
-Builtin FFI for C interoperability
-Commerce friendly
+High-level DSL like language based on F#  
+Safe  
+Generics and type specialization  
+Garbage collected  
+High performance  
+Multicore support  
+Builtin FFI for C interoperability  
+Commerce friendly  
 
-The virtual machine is written in F# and uses the LLVM library for high-performance
-code generation.
+The virtual machine is written in F# and uses the LLVM library for high-performance  
+code generation.  
 
-This work is based HLVM, written by Jon Harrop, Flying Frog Consultancy Ltd.
-More information about HLVM are available at: http://www.ffconsultancy.com/ocaml/hlvm/
+This work is based HLVM, written by Jon Harrop, Flying Frog Consultancy Ltd.  
+More information about HLVM are available at: http://www.ffconsultancy.com/ocaml/hlvm/  
 
 ## Status
 
@@ -23,18 +23,18 @@ The `master` branch is for the latest version of FsHlvm.
 
 ## Build Requirements
 
-Requires mono 3.0 or higher.
-Requires fsharp 3.1 or higher.
-Requires llvm-fs (packaged).
+Requires mono 3.0 or higher.  
+Requires fsharp 3.1 or higher.  
+Requires llvm-fs (packaged).  
 
 ## Execution Requirements
 
-Tested on Ubuntu 14.04 (amd64)
+Tested on Ubuntu 14.04 (amd64)  
 
-Requires LLVM-3.4
-Requires CLANG-3.4
-Requires FsHlvm fshlvmllvmwrapper shared library
-Requires FsHlvm fshlvmruntime shared library
+Requires LLVM-3.4  
+Requires CLANG-3.4  
+Requires FsHlvm fshlvmllvmwrapper shared library  
+Requires FsHlvm fshlvmruntime shared library  
 
 ### Installing LLVM-3.4
 
@@ -64,9 +64,9 @@ It will copy the fshlvmllvmwrapper.so and fshlvmruntime.so to $FSHLVM_PATH/lib
 sh build.sh
 ```
 
-Alternative method:
-Linux/mono: open the FsHlvm.sln project file with Monodevelop and build the project. This will
-generate the FsHlvm.Core.dll assembly for you.
+Alternative method:  
+Linux/mono: open the FsHlvm.sln project file with Monodevelop and build the project.  
+This will generate the FsHlvm.Core.dll assembly for you.  
 
 ### OS X
 
@@ -82,8 +82,8 @@ Not yet tested on Windows.
 
 In order to use FsHlvm you will want to check the following:
 
-1. Example F# code under FsHlvm.Main.
-2. Tests F# code under FsHlvm.Tests.
+1. Example F# code under FsHlvm.Main.  
+2. Tests F# code under FsHlvm.Tests.  
 
 ### Editing the Project with Visual Studio, Xamarin Studio or MonoDevelop
 
