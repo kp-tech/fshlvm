@@ -8,7 +8,7 @@
 // Apache License 2.0.
 // ---------------------------------------------------------------------------
 
-module KPTech.FsHlvm.Tests.FsUnit
+module KPTech.FsHlvm.Core.Tests.FsUnit
 
 open NUnit.Framework
 open NUnit.Framework.Constraints

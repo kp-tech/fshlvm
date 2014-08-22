@@ -6,7 +6,7 @@
     <ProjectGuid>{B6D92698-BC4D-4EA7-AD24-0A7CD4B975BA}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>FsHlvm.Tests</RootNamespace>
-    <AssemblyName>FsHlvm.Tests</AssemblyName>
+    <AssemblyName>FsHlvm.Core.Tests</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

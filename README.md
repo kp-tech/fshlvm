@@ -83,7 +83,7 @@ Not yet tested on Windows.
 In order to use FsHlvm you will want to check the following:
 
 1. Example F# code under FsHlvm.Main.  
-2. Tests F# code under FsHlvm.Tests.  
+2. Tests F# code under FsHlvm.Core.Tests.  
 
 ### Editing the Project with Visual Studio, Xamarin Studio or MonoDevelop
 
@@ -107,10 +107,10 @@ clang -o listopt listopt.bc -ldl
 After building test (each test must run individually, one by one!)
 
 ```
-cd $FSHLVM_PATH/tests/FsHlvm.Tests
+cd $FSHLVM_PATH/tests/FsHlvm.Core.Tests
 ln -s ../../lib/libfshlvmllvmwrapper.so .
 ln -s ../../lib/libfshlvmruntime.so .
-./run.sh -run=KPTech.FsHlvm.Tests.FsHlvmTest+applicationTests.boehm
+./run.sh -run=KPTech.FsHlvm.Core.Tests.FsHlvmTest+applicationTests.boehm
 opt-3.4 -tailcallelim -std-compile-opts < bin/Release/boehm.bc >boehmopt.bc
 clang -o boehmopt boehmopt.bc -ldl
 ./boehmopt

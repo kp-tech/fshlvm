@@ -31,7 +31,7 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ---------------------------------------------------------------------------
 
-module KPTech.FsHlvm.Tests.FsHlvmTest
+module KPTech.FsHlvm.Core.Tests.FsHlvmTest
 
 open System
 open NUnit.Framework
