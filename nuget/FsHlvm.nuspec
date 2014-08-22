@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>@project@</id>
+    <version>@build.number@</version>
+    <title>@project@</title>
+    <authors>@authors@</authors>
+    <owners>@authors@</owners>
+    <licenseUrl>https://github.com/kp-tech/FsHlvm/blob/master/LICENSE.md</licenseUrl>
+    <projectUrl>https://github.com/kp-tech/fshlvm</projectUrl>
+    <requireLicenseAcceptance>yes</requireLicenseAcceptance>
+    <summary>@summary@</summary>
+    <description>@description@</description>
+    <releaseNotes>@releaseNotes@</releaseNotes>
+    <copyright>Copyright 2014</copyright>
+    <tags>@tags@</tags>
+    @dependencies@
+  </metadata>
+  @files@
+</package>
