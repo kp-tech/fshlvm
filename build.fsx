@@ -10,7 +10,6 @@ open Fake.AssemblyInfoFile
 open Fake.ReleaseNotesHelper
 open System
 
-
 // --------------------------------------------------------------------------------------
 // Information about the project to be used at NuGet and in AssemblyInfo files
 // --------------------------------------------------------------------------------------
@@ -88,9 +87,21 @@ Target "CleanDocs" (fun _ ->
 // Build library & test project
 
 Target "Build" (fun _ ->
-    !! solutionFile
-    |> MSBuildRelease "" "Rebuild"
-    |> ignore
+        !! solutionFile
+        |> MSBuildReleaseExt "" [] "Rebuild"
+        |> ignore
+)
+
+Target "Buildx86" (fun _ ->
+        !! solutionFile
+        |> MSBuildReleaseExt "" [("Platform","x86")] "Rebuild"
+        |> ignore
+)
+
+Target "Buildx64" (fun _ ->
+        !! solutionFile
+        |> MSBuildReleaseExt "" [("Platform","x64")] "Rebuild"
+        |> ignore
 )
 
 // --------------------------------------------------------------------------------------
@@ -160,6 +171,8 @@ Target "All" DoNothing
   ==> "RestorePackages"
   ==> "AssemblyInfo"
   ==> "Build"
+  ==> "Buildx86"
+  ==> "Buildx64"
   ==> "CleanDocs"
   ==> "GenerateDocs"
   ==> "All"
