@@ -14,7 +14,7 @@ Commerce friendly
 The virtual machine is written in F# and uses the LLVM library for high-performance  
 code generation.  
 
-## More information about FsHlvm are be available at:
+More information about FsHlvm are be available at:
 http://www.kp-tech.hu/en/products/fshlvm-opensource
 
 This work is based HLVM, written by Jon Harrop, Flying Frog Consultancy Ltd.  
@@ -59,10 +59,13 @@ Works in progress, only the LLVM codegen are working.
 
 Please make sure you build the project using Release|x86 configuration, otherwise the .NET engine will throw BadImageFormatException.
 
-https://github.com/CRogers/LLVM-Windows-Binaries/releases/download/v3.4/llvm-3.4-shared-library-windows.7z
-https://github.com/CRogers/LLVM-Windows-Binaries/releases/download/v3.4/llvm-3.4-tools-windows.7z
+https://github.com/CRogers/LLVM-Windows-Binaries/releases/download/v3.4/llvm-3.4-shared-library-windows.7z  
+https://github.com/CRogers/LLVM-Windows-Binaries/releases/download/v3.4/llvm-3.4-tools-windows.7z  
 
 Extract the llvm-3.4-shared-library-windows.7z and llvm-3.4-tools-windows.7z to a directory called %LLVM_PATH%.
+
+You may also need to download and install the Visual C++ Redistributable Packages for Visual Studio 2013:  
+http://www.microsoft.com/en-gb/download/details.aspx?id=40784
 
 ## How to Build
 
@@ -85,8 +88,7 @@ sh build.sh
 ```
 
 Alternative method:  
-Linux/mono: open the FsHlvm.sln project file with Monodevelop and build the project.  
-This will generate the FsHlvm.Core.dll assembly for you.  
+Linux/mono: open the FsHlvm.sln project file with Monodevelop and build the project. This will generate the FsHlvm.Core.dll assembly for you.
 
 ### OS X
 
