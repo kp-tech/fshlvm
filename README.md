@@ -14,7 +14,7 @@ Commerce friendly
 The virtual machine is written in F# and uses the LLVM library for high-performance  
 code generation.  
 
-More information about FsHlvm project are be available at:
+## More information about FsHlvm are be available at:
 http://www.kp-tech.hu/en/products/fshlvm-opensource
 
 This work is based HLVM, written by Jon Harrop, Flying Frog Consultancy Ltd.  
@@ -24,13 +24,19 @@ More information about HLVM are available at: http://www.ffconsultancy.com/ocaml
 
 The `master` branch is for the latest version of FsHlvm.
 
-## Build Requirements
+## Build Requirements on Linux
 
-Requires mono 3.0 or higher.  
+Requires mono 3.4 or higher.  
+Requires fsharp 3.1 or higher.  
+Requires llvm-fs (packaged).
+
+## Build Requirements on Windows
+
+Requires .NET 4.5 or higher.  
 Requires fsharp 3.1 or higher.  
 Requires llvm-fs (packaged).  
 
-## Execution Requirements
+## Execution Requirements on Linux
 
 Tested on Ubuntu 14.04 (amd64)  
 
@@ -46,6 +52,17 @@ apt-get install llvm-3.4-dev libllvm3.4
 ### Installing CLANG-3.4
 
 apt-get install clang-3.4
+
+## Execution Requirements on Windows (32bit)
+
+Works in progress, only the LLVM codegen are working.
+
+Please make sure you build the project using Release|x86 configuration, otherwise the .NET engine will throw BadImageFormatException.
+
+https://github.com/CRogers/LLVM-Windows-Binaries/releases/download/v3.4/llvm-3.4-shared-library-windows.7z
+https://github.com/CRogers/LLVM-Windows-Binaries/releases/download/v3.4/llvm-3.4-tools-windows.7z
+
+Extract the llvm-3.4-shared-library-windows.7z and llvm-3.4-tools-windows.7z to a directory called %LLVM_PATH%.
 
 ## How to Build
 
@@ -75,9 +92,26 @@ This will generate the FsHlvm.Core.dll assembly for you.
 
 Not yet tested on OS X.
 
-### Windows, using msbuild
+### Windows (32bit), using msbuild
 
-Not yet tested on Windows.
+Works in progress, only the LLVM codegen are working.
+
+#### Build fshlvmllvmwrapper and fshlvmruntime shared library
+
+Works in progress.
+
+#### Windows (32bit)
+
+#### Build FsHlvm
+
+```
+build.cmd
+```
+
+Alternative method:  
+Windows: open the FsHlvm.sln project file with Visual Studio, Xamarin Studio or Monodevelop, 
+change the configuration to Release|x86 and build the project.  
+This will generate the FsHlvm.Core.dll assembly for you.  
 
 ## Development Notes
 
@@ -117,4 +151,13 @@ ln -s ../../lib/libfshlvmruntime.so .
 opt-3.4 -tailcallelim -std-compile-opts < bin/Release/boehm.bc >boehmopt.bc
 clang -o boehmopt boehmopt.bc -ldl
 ./boehmopt
+```
+
+### Windows (32bit)
+
+After building run
+```
+cd %FSHLVM_PATH%\bin
+copy %LLVM_PATH%\LLVM-3.4.dll libLLVM-3.4.so
+x86\Release\FsHlvm.Main.exe
 ```
