@@ -1,5 +1,5 @@
 ﻿// ---------------------------------------------------------------------------
-// Copyright (c) 2014, Zoltan Podlovics, KP-Tech Kft. All Rights Reserved.
+// Copyright (c) 2014-2017, Zoltan Podlovics, KP-Tech Kft. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0. See LICENSE.md in the 
 // project root for license information.
@@ -20,7 +20,7 @@ open System.Runtime.CompilerServices
 
 // The assembly version has the format {Major}.{Minor}.{Build}.{Revision}
 
-[<assembly: AssemblyVersion("1.0.0.0")>]
+[<assembly: AssemblyVersion("2.0.0.0")>]
 
 //[<assembly: AssemblyDelaySign(false)>]
 //[<assembly: AssemblyKeyFile("")>]

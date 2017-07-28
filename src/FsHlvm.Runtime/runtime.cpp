@@ -1,10 +1,11 @@
 // ---------------------------------------------------------------------------
-// Copyright (c) 2014, Zoltan Podlovics, KP-Tech Kft. All Rights Reserved.
+// Copyright (c) 2014-2017, Zoltan Podlovics, KP-Tech Kft. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0. See LICENSE.md in the 
 // project root for license information.
 // ---------------------------------------------------------------------------
-// This work is based HLVM, written by Jon Harrop, Flying Frog Consultancy Ltd.
+// This file incorporates work covered by the following copyright and
+// permission notice:
 // ---------------------------------------------------------------------------
 // Portions of Copyright (c) 2009, Jon Harrop, Flying Frog Consultancy Ltd.
 // All rights reserved.

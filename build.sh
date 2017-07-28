@@ -1,10 +1,8 @@
 #!/bin/bash
-
-mono .nuget/NuGet.exe install FAKE -OutputDirectory packages -ExcludeVersion
-mono .nuget/NuGet.exe install SourceLink.Fake -OutputDirectory packages -ExcludeVersion
-
-if [ ! -e build.fsx ]; then 
-  mono packages/FAKE/tools/FAKE.exe init.fsx
-fi
-
-mono packages/FAKE/tools/FAKE.exe $@ --fsiargs -d:MONO build.fsx 
+export FSHLVM_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd $FSHLVM_HOME/src/FsHlvm.Runtime
+make
+make install
+cd $FSHLVM_HOME
+dotnet restore
+dotnet build -c Release

@@ -26,50 +26,58 @@ The `master` branch is for the latest version of FsHlvm.
 
 ## Build Requirements on Linux
 
-Requires mono 3.4 or higher.  
-Requires fsharp 3.1 or higher.  
-Requires llvm-fs (packaged).
+Note: .NET Core has only initial support for local dll references, and only in the recent version of SDK:
+https://github.com/dotnet/sdk/issues/120
+https://github.com/dotnet/sdk/issues/1425
 
-## Build Requirements on Windows
-
-Requires .NET 4.5 or higher.  
-Requires fsharp 3.1 or higher.  
-Requires llvm-fs (packaged).  
+Requires .NET Core 2.0 preview2 (2.0.0-preview2-006497).
+Requires F# 4.1 or higher.  
+Requires FSLLVM (precompiled netstandard2.0 version are available under lib/).
 
 ## Execution Requirements on Linux
 
-Tested on Ubuntu 14.04 (amd64)  
+Tested on Ubuntu 16.04 (amd64)  
 
-Requires LLVM-3.4  
-Requires CLANG-3.4  
+Requires LLVM-3.8  
+Requires CLANG-3.8  
 Requires FsHlvm fshlvmllvmwrapper shared library  
 Requires FsHlvm fshlvmruntime shared library  
 
-### Installing LLVM-3.4
+### Installing LLVM-3.8
 
-apt-get install llvm-3.4-dev libllvm3.4
+apt-get install llvm-3.8-dev libllvm3.8
 
-### Installing CLANG-3.4
+### Installing CLANG-3.8
 
-apt-get install clang-3.4
-
-## Execution Requirements on Windows (32bit)
-
-Works in progress, only the LLVM codegen are working.
-
-Please make sure you build the project using Release|x86 configuration, otherwise the .NET engine will throw BadImageFormatException.
-
-https://github.com/CRogers/LLVM-Windows-Binaries/releases/download/v3.4/llvm-3.4-shared-library-windows.7z  
-https://github.com/CRogers/LLVM-Windows-Binaries/releases/download/v3.4/llvm-3.4-tools-windows.7z  
-
-Extract the llvm-3.4-shared-library-windows.7z and llvm-3.4-tools-windows.7z to a directory called %LLVM_PATH%.
-
-You may also need to download and install the Visual C++ Redistributable Packages for Visual Studio 2013:  
-http://www.microsoft.com/en-gb/download/details.aspx?id=40784
+apt-get install clang-3.8
 
 ## How to Build
 
 ### Linux:
+
+#### QuickStart
+
+The following command will:
+* Build the F# codebase
+* Execute the FsHlvm.Cli executable (which will generate a list llvm bitcode example list.bc)
+* Optimize the list example llvm bitcode (listopt.bc)
+* Create a native executable for the list example called (listopt)
+
+```
+sh run.sh
+```
+
+#### Build everything
+
+The following command will:
+* Build the F# codebase
+
+```
+sh build.sh
+```
+
+Alternative F# codebase building method:
+Linux/.NET Core: open the FsHlvm.sln project file with Visual Studio Code and build the project. This will generate the FsHlvm.Core.dll assembly for you.
 
 #### Build fshlvmllvmwrapper and fshlvmruntime shared library
 
@@ -79,41 +87,15 @@ make
 make install
 ```
 
-It will copy the fshlvmllvmwrapper.so and fshlvmruntime.so to $FSHLVM_PATH/lib
-
-#### Build FsHlvm
-
-```
-sh build.sh
-```
-
-Alternative method:  
-Linux/mono: open the FsHlvm.sln project file with Monodevelop and build the project. This will generate the FsHlvm.Core.dll assembly for you.
+This will copy the fshlvmllvmwrapper.so and fshlvmruntime.so to $FSHLVM_PATH/lib
 
 ### OS X
 
 Not yet tested on OS X.
 
-### Windows (32bit), using msbuild
+### Windows (64bit), using msbuild
 
-Works in progress, only the LLVM codegen are working.
-
-#### Build fshlvmllvmwrapper and fshlvmruntime shared library
-
-Works in progress.
-
-#### Windows (32bit)
-
-#### Build FsHlvm
-
-```
-build.cmd
-```
-
-Alternative method:  
-Windows: open the FsHlvm.sln project file with Visual Studio, Xamarin Studio or Monodevelop, 
-change the configuration to Release|x86 and build the project.  
-This will generate the FsHlvm.Core.dll assembly for you.  
+Not yet tested on Windows.
 
 ## Development Notes
 
@@ -121,45 +103,45 @@ This will generate the FsHlvm.Core.dll assembly for you.
 
 In order to use FsHlvm you will want to check the following:
 
-1. Example F# code under FsHlvm.Main.  
-2. Tests F# code under FsHlvm.Core.Tests.  
+1. Example F# code under FsHlvm.Cli.
+2. Tests F# code under FsHlvm.Core.Tests.
 
-### Editing the Project with Visual Studio, Xamarin Studio or MonoDevelop
+### Editing the Project with Visual Studio, Visual Studio Code, Xamarin Studio or MonoDevelop
 
 Open `FsHlvm.sln`, and edit in modes Debug or Release. 
 
-## How to Test and Validate
+## How to Test and Validate manually
 
 ### Linux 
 
-After building run
+Cli Test and Validation
+
 ```
-cd $FSHLVM_PATH/bin
-ln -s ../lib/libfshlvmllvmwrapper.so .
-ln -s ../lib/libfshlvmruntime.so .
-mono Release/FsHlvm.Main.exe
-opt-3.4 -tailcallelim -std-compile-opts < list.bc >listopt.bc
-clang -o listopt listopt.bc -ldl
+cd $FSHLVM_PATH/src/FsHlvm.Cli
+ln -sfn ../lib/libfshlvmllvmwrapper.so .
+ln -sfn ../lib/libfshlvmruntime.so .
+dotnet restore
+dotnet run -c Release
+opt-3.8 -tailcallelim -O3 < list.bc >listopt.bc
+clang-3.8 -o listopt listopt.bc -ldl
 ./listopt
 ```
 
-After building test (each test must run individually, one by one!)
+Additional Tests Test and Validation (each test must run individually, one by one!)
 
 ```
 cd $FSHLVM_PATH/tests/FsHlvm.Core.Tests
-ln -s ../../lib/libfshlvmllvmwrapper.so .
-ln -s ../../lib/libfshlvmruntime.so .
-./run.sh -run=KPTech.FsHlvm.Core.Tests.FsHlvmTest+applicationTests.boehm
-opt-3.4 -tailcallelim -std-compile-opts < bin/Release/boehm.bc >boehmopt.bc
-clang -o boehmopt boehmopt.bc -ldl
-./boehmopt
-```
-
-### Windows (32bit)
-
-After building run
-```
-cd %FSHLVM_PATH%\bin
-copy %LLVM_PATH%\LLVM-3.4.dll libLLVM-3.4.so
-x86\Release\FsHlvm.Main.exe
+ln -sfn ../../lib/libfshlvmllvmwrapper.so .
+ln -sfn ../../lib/libfshlvmruntime.so .
+ln -sfn /usr/lib/llvm-3.8/lib/libLLVM-3.8.so .
+dotnet restore
+./run.sh
+./ffibopt
+./fibopt
+./foldopt
+./listopt
+./mandelbrot2opt
+./mandelbrotopt
+./tcoopt
+./trigopt
 ```

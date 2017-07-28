@@ -10,56 +10,30 @@
 
 module KPTech.FsHlvm.Core.Tests.FsUnit
 
-open NUnit.Framework
-open NUnit.Framework.Constraints
+    open Xunit
 
-let should (f : 'a -> #Constraint) x (y : obj) =
-    let c = f x
-    let y =
-        match y with
-        | :? (unit -> unit) -> box (new TestDelegate(y :?> unit -> unit))
-        | _                 -> y
-    Assert.That(y, c)
+    // like "should equal", but validates same-type
+    let shouldEqual (x: 'a) (y: 'a) =
+        let msg = System.String.Format("Expected: {0}\nActual: {1}", x, y)
+        Assert.Equal<'a>(x, y)
 
-let equal x = new EqualConstraint(x)
+    let shouldLess (x: 'a) (y: 'a) =
+        let msg = System.String.Format("Expected: {0}\nActual: {1}", x, y)
+        Assert.True(x < y, msg)
 
-// like "should equal", but validates same-type
-let shouldEqual (x: 'a) (y: 'a) = 
-    Assert.AreEqual(x, y, sprintf "Expected: %A\nActual: %A" x y)
+    let shouldLessOrEqual (x: 'a) (y: 'a) =
+        let msg = System.String.Format("Expected: {0}\nActual: {1}", x, y)
+        Assert.True(x <= y, msg)
 
-let shouldEqualPos (x: 'a) (y: 'a) (i: int) = 
-    Assert.AreEqual(x, y, sprintf "Position: %d\n Expected: %A\nActual: %A" i x y)
+    let shouldGreater (x: 'a) (y: 'a) =
+        let msg = System.String.Format("Expected: {0}\nActual: {1}", x, y)
+        Assert.True(x > y, msg)
 
-let shouldEqualOptionPos (x: 'a option) (y: 'a option) (i: int) = 
-    match x, y with
-    | None, None -> Assert.AreEqual(y, x, sprintf "Position: %d\n Expected: %A\nActual: %A" i -1 -1)
-    | Some xo, None -> Assert.AreEqual(y, x, sprintf "Position: %d\n Expected: %A\nActual: %A" i xo -1)
-    | None, Some yo -> Assert.AreEqual(y, x, sprintf "Position: %d\n Expected: %A\nActual: %A" i -1 yo)
-    | Some xo, Some yo -> Assert.AreEqual(y, x, sprintf "Position: %d\n Expected: %A\nActual: %A" i xo yo)
+    let shouldGreaterOrEqual (x: 'a) (y: 'a) =
+        let msg = System.String.Format("Expected: {0}\nActual: {1}", x, y)
+        Assert.True(x >= y, msg)
 
-// overriding a standard language function is not cool
-//let not x = new NotConstraint(x)
+    let shouldEqualPos (i: int) (x: 'a) (y: 'a)  = 
+        let msg = System.String.Format("Position: {0}\n Expected: {0}\nActual: {1}", i, x, y) in
+        Assert.Equal<'a>(x, y)
 
-let contain x = new ContainsConstraint(x)
-
-let haveLength n = Has.Length.EqualTo(n)
-
-let haveCount n = Has.Count.EqualTo(n)
-
-let be = id
-
-let Null = new NullConstraint()
-
-let Empty = new EmptyConstraint()
-
-let EmptyString = new EmptyStringConstraint()
-
-let NullOrEmptyString = new NullOrEmptyStringConstraint()
-
-let True = new TrueConstraint()
-
-let False = new FalseConstraint()
-
-let sameAs x = new SameAsConstraint(x)
-
-let throw = Throws.TypeOf   

@@ -1,5 +1,5 @@
 ﻿// ---------------------------------------------------------------------------
-// Copyright (c) 2014, Zoltan Podlovics, KP-Tech Kft. All Rights Reserved.
+// Copyright (c) 2014-2017, Zoltan Podlovics, KP-Tech Kft. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0. See LICENSE.md in the 
 // project root for license information.
@@ -34,7 +34,7 @@
 module KPTech.FsHlvm.Core.Tests.FsHlvmTest
 
 open System
-open NUnit.Framework
+open Xunit
 open FsUnit
 
 open Printf
@@ -70,16 +70,19 @@ let fill ty =
          Unit))]
 
 // Note: Run only one test case at a time (!), because FsHlvm require proper inicialization, and the compiler also has internal mutable state
-//opt -tailcallelim -std-compile-opts <aout.bc >aoutopt.bc
-//llc -tailcallopt aoutopt.bc -o aoutopt.s
+//opt-3.8 -tailcallelim -O3 <aout.bc >aoutopt.bc
+//llc-3.8 -tailcallopt aoutopt.bc -o aoutopt.s
 //g++ -g aoutopt.s -lsigsegv -ldl -lm -o aoutopt
+//
+//OR
+//
+//opt-3.8 -tailcallelim -O3 <aout.bc >aoutopt.bc
+//clang -o aoutopt aoutopt.bc -ldl
 
-
-
-[<TestFixture>]
 type public exprTests() =
 
-    [<TestCase(1)>]
+    [<Theory>]
+    [<InlineData(1)>]
     member x.``exprPrintfIntN`` n =
         let exprPrintfIntN n =
                [TLExpr
@@ -89,7 +92,8 @@ type public exprTests() =
         testEval "exprPrintfIntN.bc" (exprPrintfIntN n);
         shouldEqual true true;
 
-    [<TestCase(1,2)>]
+    [<Theory>]
+    [<InlineData(1,2)>]
     member x.``exprPrintfIntNM`` n m =
         let exprPrintfIntNM n m =
                [TLExpr
@@ -100,7 +104,8 @@ type public exprTests() =
         shouldEqual true true;
 
 
-    [<TestCase(1.0)>]
+    [<Theory>]
+    [<InlineData(1,0)>]
     member x.``exprPrintfFloatN`` n =
         let exprPrintfFloatN n =
                [TLExpr
@@ -110,7 +115,8 @@ type public exprTests() =
         testEval "exprPrintfFloatN.bc" (exprPrintfFloatN n);
         shouldEqual true true;       
 
-    [<TestCase(1)>]
+    [<Theory>]
+    [<InlineData(1)>]
     member x.``exprLetVarPrintfIntN`` n =
         let exprLetVarPrintfIntN n =
                [TLExpr
@@ -122,7 +128,8 @@ type public exprTests() =
         shouldEqual true true;
 
 
-    [<TestCase(1,1)>]
+    [<Theory>]
+    [<InlineData(1,1)>]
     member x.``exprSumNM`` n m =
         let exprSumNM n m =
                [TLExpr
@@ -135,7 +142,8 @@ type public exprTests() =
         testEval "exprSumNM.bc" (exprSumNM n m);
         shouldEqual true true;
 
-    [<TestCase(1,1)>]
+    [<Theory>]
+    [<InlineData(1)>]
     member x.``exprArrayAllocNM`` n m =
         let exprArrayAllocNM n m =
                [TLExpr
@@ -146,7 +154,7 @@ type public exprTests() =
         testEval "exprArrayAllocNM.bc" (exprArrayAllocNM n m);
         shouldEqual true true;
 
-    [<Test>]
+    [<Fact>]
     member x.``funIntAddNM`` () =
         let funIntAddNM n m =
           let nVar = Var "n" in
@@ -164,7 +172,7 @@ type public exprTests() =
         testEval "funIntAddNM.bc" (funIntAddNM 1 2);
         shouldEqual true true;
 
-    [<Test>]
+    [<Fact>]
     member x.``funFloatAddNM`` () =
         let funFloatAddNM n m =
           let nVar = Var "n" in
@@ -183,9 +191,8 @@ type public exprTests() =
         shouldEqual true true;
 
 
-[<TestFixture>]
 type public applicationTests() =
-    [<Test>]
+    [<Fact>]
     member x.``boehm`` () =
         let boehm =
           let n = 1048576 in
@@ -217,7 +224,7 @@ type public applicationTests() =
         testEval "boehm.bc" (boehm);
         shouldEqual true true;
 
-    [<Test>]
+    [<Fact>]
     member x.``sieve`` () =
 
         (** Sieve of Eratosthenes. *)
@@ -258,7 +265,7 @@ type public applicationTests() =
         shouldEqual true true;
 
 
-    [<Test>]
+    [<Fact>]
     member x.``fib`` () =
         let fib ns =
           let n = Var "n" in
@@ -277,7 +284,7 @@ type public applicationTests() =
         testEval "fib.bc" (fib [10]);
         shouldEqual true true;
 
-    [<Test>]
+    [<Fact>]
     member x.``ffib`` () =
         let ffib ns =
             let n = Var "n" in
@@ -298,7 +305,7 @@ type public applicationTests() =
         testEval "ffib.bc" (ffib [10.0]);
         shouldEqual true true;
 
-    [<Test>]
+    [<Fact>]
     member x.``mandelbrot`` () =
         let mandelbrot ns =
           [ TLFunction
@@ -345,7 +352,7 @@ type public applicationTests() =
         testEval "mandelbrot.bc" (mandelbrot [80]);
         shouldEqual true true;
 
-    [<Test>]
+    [<Fact>]
     member x.``mandelbrot2`` () =
         let mandelbrot2 ns =
           let complex = TStruct[TFloat; TFloat] in
@@ -402,7 +409,7 @@ type public applicationTests() =
         testEval "mandelbrot2.bc" (mandelbrot2 [80]);
         shouldEqual true true;
 
-    [<Test>]
+    [<Fact>]
     member x.``tco`` () =
         let tco n  =
           [ TLFunction("even", ["odd", TFunction([TInt], TInt); "n", TInt], TInt,
@@ -421,7 +428,7 @@ type public applicationTests() =
         testEval "tco.bc" (tco 1000000000);
         shouldEqual true true;
 
-    [<Test>]
+    [<Fact>]
     member x.``trig`` () =
         let trig  =
           let triple = TStruct[TFloat; TFloat; TFloat] in
@@ -443,7 +450,7 @@ type public applicationTests() =
         testEval "trig.bc" (trig);
         shouldEqual true true;
 
-    [<Test>]
+    [<Fact>]
     member x.``fold`` () =
         let fold ns =
           let fold ty1 ty2 =
@@ -488,7 +495,7 @@ type public applicationTests() =
 
 
 
-    [<Test>]
+    [<Fact>]
     member x.``list`` () =
         let tyList ty =
           [ TLType("Cons", TStruct[ty; TReference]);
@@ -540,47 +547,3 @@ type public applicationTests() =
                     ns
         testEval "list.bc" (list [1000]);
         shouldEqual true true;
-
-(* 
-    missing search function
-
-    [<Test>]
-    member x.``threads`` () =
-        let threads n =
-          [ TLFunction
-              ("worker", ["id", TInt], TUnit,
-                 let n = 8 in
-                 compound
-                   [ Printf("Queens\n", []);
-                     Printf("%d\n", [Apply(Var "search",
-                                           [Var "f";
-                                            Int n;
-                                            nil;
-                                            Apply(Var "ps", [Int n; Int 0; Int 0]);
-                                            Int 0])]) ]);
-
-            TLFunction
-              ("mk_thread", ["ij", TStruct[TInt; TInt]], TUnit,
-               Let("i", GetValue(Var "ij", 0),
-                   Let("j", GetValue(Var "ij", 1),
-                       If(Var "i" =. Var "j", Unit,
-                          If(Var "i" +. Int 1 =. Var "j",
-                             Apply(Var "worker", [Int n]),
-                             Let("m", Var "i" +. (Var "j" -. Var "i") /. Int 2,
-                                 Let("thread",
-                                     CreateThread(Var "mk_thread",
-                                                  Struct[Var "m"; Var "j"]),
-                                     compound
-                                       [ Apply(Var "mk_thread",
-                                               [Struct[Var "i"; Var "m"]]);
-                                         JoinThread(Var "thread") ])))))));
-
-            TLExpr
-              (compound
-                 [ Printf("%dx %d-queens\n", [Int n; Int 8]);
-                   Apply(Var "mk_thread", [Struct[Int 0; Int n]]) ]) ] in
-
-        testEval "threads.bc" (threads 10);
-        shouldEqual true true;
-
-*)

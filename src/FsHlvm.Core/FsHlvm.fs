@@ -1,10 +1,11 @@
 ﻿// ---------------------------------------------------------------------------
-// Copyright (c) 2014, Zoltan Podlovics, KP-Tech Kft. All Rights Reserved.
+// Copyright (c) 2014-2017, Zoltan Podlovics, KP-Tech Kft. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0. See LICENSE.md in the 
 // project root for license information.
 // ---------------------------------------------------------------------------
-// This work is based HLVM, written by Jon Harrop, Flying Frog Consultancy Ltd.
+// This file incorporates work covered by the following copyright and
+// permission notice:
 // ---------------------------------------------------------------------------
 // Portions of Copyright (c) 2009, Jon Harrop, Flying Frog Consultancy Ltd.
 // All rights reserved.
@@ -30,7 +31,6 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ---------------------------------------------------------------------------
-
 module KPTech.FsHlvm.Core
 
 open System
@@ -38,6 +38,7 @@ open System
 open System.Collections.Generic
 
 module LLC = LLVM.Core
+module LLGT = LLVM.Generated.Types
 module LLGC = LLVM.Generated.Core
 module LLGEE = LLVM.Generated.ExecutionEngine
 
@@ -62,7 +63,7 @@ module Compatibility = begin
     /// <param name="ctx">llvm context</param>
     /// <param name="s">string</param>
     /// <returns>llvm valueref</returns>
-    let constStringNT (c: LLGC.ContextRef) (s:string) = 
+    let constStringNT (c: LLGT.ContextRef) (s:string) = 
         LLGC.constStringInContext c s ((uint32)s.Length) true
 
     /// <summary>
@@ -71,7 +72,7 @@ module Compatibility = begin
     /// <param name="ctx">llvm context</param>
     /// <param name="s">string</param>
     /// <returns>llvm valueref</returns>
-    let constStringNNT (c: LLGC.ContextRef) (s:string) =
+    let constStringNNT (c: LLGT.ContextRef) (s:string) =
         LLGC.constStringInContext c s ((uint32)s.Length) false
 
 
@@ -100,7 +101,7 @@ module Compatibility = begin
     /// <param name="ty">function type</param>
     /// <param name="m">llvm module</param>
     /// <returns>llvm valueref</returns>
-    let defineFunction (value: string) (ty: LLGC.TypeRef) (m: LLGC.ModuleRef) =
+    let defineFunction (value: string) (ty: LLGT.TypeRef) (m: LLGT.ModuleRef) =
         let fn = LLGC.addFunction m value ty in
         let _ = LLGC.appendBasicBlockInContext (LLGC.getTypeContext ty) fn "entry" in
         fn
@@ -112,7 +113,7 @@ module Compatibility = begin
     /// <param name="ty">function type</param>
     /// <param name="m">llvm module</param>
     /// <returns>llvm valueref</returns>
-    let declareFunction (value: string) (ty:LLGC.TypeRef) (m: LLGC.ModuleRef) =
+    let declareFunction (value: string) (ty:LLGT.TypeRef) (m: LLGT.ModuleRef) =
         let fn = LLGC.getNamedFunction m value in
         if not (IntPtr.Zero.Equals(fn.Ptr)) then
             let fnTy = LLGC.getElementType (LLGC.typeOf fn) in
@@ -128,7 +129,7 @@ module Compatibility = begin
     /// </summary>
     /// <param name="ty">type</param>
     /// <returns>llvm valueref</returns>
-    let makeUndef (ty:LLGC.TypeRef) =
+    let makeUndef (ty:LLGT.TypeRef) =
         LLGC.getUndef ty
 
     /// <summary>
@@ -137,7 +138,7 @@ module Compatibility = begin
     /// <param name="ctx">llvm context</param>
     /// <param name="s">string</param>
     /// <returns>llvm valueref</returns>
-    let constStringN (c: LLGC.ContextRef) (s:string) =
+    let constStringN (c: LLGT.ContextRef) (s:string) =
         LLGC.constStringInContext c s ((uint32)s.Length) false
 
     /// <summary>
@@ -148,7 +149,7 @@ module Compatibility = begin
     /// <returns>bool: true on success false on failure</returns>
     let verifyModule _M _Action = 
         let nullString = LLVM.Core.constInt8 64y in
-        LLVM.Generated.Analysis.verifyModuleNative ((_M : LLGC.ModuleRef).Ptr, (int (_Action : LLVM.Generated.Analysis.VerifierFailureAction)), (nullString: LLGC.ValueRef).Ptr)
+        LLVM.Generated.Analysis.verifyModuleNative ((_M : LLGT.ModuleRef).Ptr, (int (_Action : LLVM.Generated.Analysis.VerifierFailureAction)), (nullString: LLGT.ValueRef).Ptr)
 
     /// <summary>
     /// verify an llvm function
@@ -158,7 +159,7 @@ module Compatibility = begin
     /// <returns>bool: true on success false on failure</returns>
     let verifyFunction _F _Action = 
         let nullString = LLVM.Core.constInt8 64y in
-        LLVM.Generated.Analysis.verifyFunctionNative ((_F : LLGC.ValueRef).Ptr, (int (_Action : LLVM.Generated.Analysis.VerifierFailureAction)))
+        LLVM.Generated.Analysis.verifyFunctionNative ((_F : LLGT.ValueRef).Ptr, (int (_Action : LLVM.Generated.Analysis.VerifierFailureAction)))
 
     /// <summary>
     /// disable llvm signal handler
@@ -233,7 +234,7 @@ let rec listToString f sep () = function
   | [h] -> f () h
   | h::t -> sprintf "%a%s%a" f h sep (listToString f sep) t
 
-type LLvalue = LLGC.ValueRef
+type LLvalue = LLGT.ValueRef
   
 module Type = begin
     /// <summary>
@@ -374,14 +375,14 @@ module Expr = begin
         // For internal use only. Deallocate the given value.
         | Free of t
         // For internal use only. Load a value from an LLVM global variable.
-        | Load of LLGC.ValueRef * Type.t
+        | Load of LLGT.ValueRef * Type.t
         // For internal use only. Store a value to an LLVM global variable.
-        | Store of LLGC.ValueRef * t
+        | Store of LLGT.ValueRef * t
         // For internal use only. Obtain the GC visit function associated with
         //    the type of the given value.
         | Visit of t
         // For internal use only. A literal LLVM value.
-        | Llvalue of LLGC.ValueRef * Type.t
+        | Llvalue of LLGT.ValueRef * Type.t
         // For internal use only. Convert between the two kinds of reference
         //    types: arrays and boxed values.
         | Magic of t * Type.t
@@ -951,7 +952,7 @@ end
 /// </summary>      
 /// <param name="arg1">type</param>
 /// <returns>llvm type</returns>                                                
-let rec llTypeOf: Type.t ->LLGC.TypeRef = function
+let rec llTypeOf: Type.t ->LLGT.TypeRef = function
     | Type.TUnit -> intType
     | Type.TBool -> i1Type
     | Type.TByte -> i8Type
@@ -1460,7 +1461,7 @@ module Extern = begin
     /// <param name="tyRet">function return type</param>
     /// <param name="tyArgs">function args type list</param>
     /// <returns>obj</returns>                                                                                                                                                                                                                                             
-    let dlfn (f:string) (tyRet:TypeRef) (tyArgs:TypeRef list) =
+    let dlfn (f:string) (tyRet:LLGT.TypeRef) (tyArgs:LLGT.TypeRef list) =
         let ty = pointerType(functionType tyRet (Array.ofList tyArgs)) in
         let ptr = makeGlobalVar f (LLGC.constNull ty) M in
         new DlfnObject(ty, ptr)
@@ -1602,13 +1603,13 @@ open Microsoft.FSharp.Collections
 /// Bound types (including internal types such as wrapper reference types for arrays).
 /// </summary>      
 /// <returns>type map</returns>                                                                                                                                                                                                                   
-let types = new Microsoft.FSharp.Collections.HashMultiMap<_, _>(13, HashIdentity.Structural)
+let types = new KPTech.FsHlvm.Collections.HashMultiMap<_, _>(13, HashIdentity.Structural)
 
 /// <summary>
 /// Container of internal functions such as visitors to traverse the heap.
 /// </summary>      
 /// <returns>function map</returns>                                                                                                                                                                                                                   
-let functions = new Microsoft.FSharp.Collections.HashMultiMap<_, _>(13, HashIdentity.Structural)
+let functions = new KPTech.FsHlvm.Collections.HashMultiMap<_, _>(13, HashIdentity.Structural)
 
 exception FsHlvmException
 
@@ -1633,7 +1634,7 @@ let addVal x vars = { vals = x :: vars.vals }
 /// Thread local types
 /// </summary>      
 type ThreadLocalType =
-    | CustomType of LLGC.ValueRef
+    | CustomType of LLGT.ValueRef
     | ExternalType
     | InternalType   
 
@@ -1648,7 +1649,7 @@ type ThreadLocalType =
 /// <param name="Roots">gc roots</param>
 /// <param name="ThreadLocal">thread local storage</param>
 /// <returns>state record</returns>                                                                                                                                                                                                                   
-type StateRecord = { PassTl: bool; Func: LLGC.ValueRef; Blk: BasicBlockRef; Odepth: Lazy<ValueRef>; GcEnabled: bool; Roots: bool; ThreadLocal: ThreadLocalType }
+type StateRecord = { PassTl: bool; Func: LLGT.ValueRef; Blk: LLGT.BasicBlockRef; Odepth: Lazy<LLGT.ValueRef>; GcEnabled: bool; Roots: bool; ThreadLocal: ThreadLocalType }
 
 /// <summary>
 /// Create a state record that encapsulates all data our interface for emitting LLVMi nstructions.
@@ -1657,7 +1658,7 @@ type StateRecord = { PassTl: bool; Func: LLGC.ValueRef; Blk: BasicBlockRef; Odep
 /// <param name="func">llvm function</param>
 /// <returns>state record</returns>                                                                                                                                                                                                                   
 type State private (state: StateRecord) = class
-    new (passTl: bool, func: LLGC.ValueRef) =
+    new (passTl: bool, func: LLGT.ValueRef) =
         State({ PassTl = passTl; 
                  Func = func; 
                  Blk = LLGC.getEntryBasicBlock func; 
@@ -1854,7 +1855,7 @@ type State private (state: StateRecord) = class
     /// <param name="ns">ns</param>
     /// <param name="y">value</param>
     /// <returns>expr</returns>                                                                                                                                                                                                                   
-    member x.Store (a: LLGC.ValueRef) (ns:LLGC.ValueRef list) (y:LLGC.ValueRef) =      
+    member x.Store (a: LLGT.ValueRef) (ns:LLGT.ValueRef list) (y:LLGT.ValueRef) =      
         ignore (LLGC.buildStore x.Bb y (x.Gep a ns))
     
     /// <summary>
@@ -1899,7 +1900,7 @@ type State private (state: StateRecord) = class
     /// </summary>      
     /// <param name="v">value</param>
     /// <returns>expr</returns>                                                                                                                                                                                                                   
-    member x.Ret (v:LLGC.ValueRef) = ignore (LLGC.buildRet x.Bb v)
+    member x.Ret (v:LLGT.ValueRef) = ignore (LLGC.buildRet x.Bb v)
 
     /// <summary>
     /// generate an LLVM branch instruction.
@@ -1992,7 +1993,7 @@ type State private (state: StateRecord) = class
     /// Depth the shadow stack was at when this function was entered.
     /// </summary>      
     /// <returns>depth</returns>                                                                                                                                                                                                                   
-    member x.Odepth = Lazy.force x.GetOdepth
+    member x.Odepth = x.GetOdepth.Force()
 
     /// <summary>
     /// Prepare to reset the shadow stack depth to this value.
@@ -2094,7 +2095,7 @@ let mkRef (state: State) llty tag data mark =
 /// </summary>      
 /// <returns>string->string</returns>                                                                                                                                                                                                                   
 let uniq =
-    let m = new Microsoft.FSharp.Collections.HashMultiMap<string,unit>(1, HashIdentity.Structural) in
+    let m = new KPTech.FsHlvm.Collections.HashMultiMap<string,unit>(1, HashIdentity.Structural) in
     let rec aux s =
         match m.TryFind s with
         | Some x -> 
@@ -2134,7 +2135,7 @@ let typeCheck err ty1 ty2 =
 /// <summary>
 /// Constant string literals are memoized here.
 /// </summary>      
-let stringCache = new Microsoft.FSharp.Collections.HashMultiMap<string,ValueRef>(13, HashIdentity.Structural)
+let stringCache = new KPTech.FsHlvm.Collections.HashMultiMap<string,LLGT.ValueRef>(13, HashIdentity.Structural)
         
 /// <summary>
 /// Memoize a string
@@ -2282,7 +2283,7 @@ and exprAux vars (state: State) = function
             match ty_s with
             | Type.TStruct tys ->
                 let v = State.ExtractValue state s ((uint32)i) in
-                state, (v, List.nth tys i)
+                state, (v, List.item i tys)
             | ty -> invalidArg "GetValue" (sprintf "GetValue of %a" Type.toString ty)
         end
     | Construct(f, x) ->
@@ -2820,7 +2821,7 @@ and exprs vars state fs =
 and returnx vars state f tyF = 
         try
             let _ = expr vars state (Return(f, tyF)) in
-            failwith "Internal error: return" ""
+            failwith "Internal error: return"
         with Returned -> ()
 
 /// <summary>
@@ -2839,11 +2840,11 @@ and gcRoot vars state v ty =
             state
         | TStruct tys ->
             let f (i, state) ty =
-                let v = lazy(State.ExtractValue state (Lazy.force v) i) in
+                let v = lazy(State.ExtractValue state (v.Force()) i) in
                 ((uint32)i+1u), gcRoot vars state v ty in
             snd(List.fold f (0u, state) tys)
         | TArray _ | TReference ->
-            let state = state.GcRoot (Lazy.force v) in
+            let state = state.GcRoot (v.Force()) in
             state
 
 /// <summary>
