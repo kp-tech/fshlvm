@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\FsHlvm.Core\FsHlvm.Core.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="..\..\lib\FSLLVM.dll" Version="1.0.0" />
+  </ItemGroup>
+
+</Project>

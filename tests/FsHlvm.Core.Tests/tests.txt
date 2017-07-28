@@ -1,0 +1,8 @@
+fib
+ffib
+mandelbrot
+mandelbrot2
+tco
+trig
+fold
+list
