@@ -206,7 +206,7 @@ module Options = begin
     /// <summary>
     /// Maximum depth of the shadow stacks, visit stack and allocated list
     /// </summary>
-    let MaxDepth = 1 <<< 23
+    let MaxDepth = int64(1 <<< 23)
 
     /// <summary>
     /// Tail call elimination enabled
@@ -216,7 +216,7 @@ module Options = begin
     /// <summary>
     /// Number of ticks before a GC check for cooperative synchronization
     /// </summary>                
-    let Ticks = 65536
+    let Ticks = 65536L
 
     /// <summary>
     /// Use a stack handler to catch stack overflows
@@ -243,11 +243,18 @@ module Type = begin
     type t =
         | TUnit
         | TBool
-        | TByte
         | TInt
+        | TInt8
+        | TInt16
         | TInt32
         | TInt64
-        | TFloat
+        | TUInt
+        | TUInt8
+        | TUInt16
+        | TUInt32
+        | TUInt64
+        | TFloat32
+        | TFloat64
         | TStruct of t list
         | TArray of t
         | TFunction of t list * t
@@ -275,12 +282,19 @@ module Type = begin
     /// <returns>string representation of a type</returns>
     let rec toStringAux () : t -> string = function
         | TUnit -> "Unit"
-        | TBool -> "Bool"
-        | TByte -> "Byte"
+        | TBool -> "Bool"        
         | TInt -> "Int"
+        | TInt8 -> "Int8"
+        | TInt16 -> "Int16"
         | TInt32 -> "Int32"
         | TInt64 -> "Int64"
-        | TFloat -> "Float"
+        | TUInt -> "UInt"
+        | TUInt8 -> "UInt8"
+        | TUInt16 -> "UInt16"
+        | TUInt32 -> "UInt32"
+        | TUInt64 -> "UInt64"
+        | TFloat32 -> "Float32"
+        | TFloat64 -> "Float64"
         | TStruct tys -> sprintf "Struct[%a]" toStrings tys
         | TArray ty -> sprintf "Array(%a)" toStringAux ty
         | TFunction(tys_arg, ty_ret) ->
@@ -301,8 +315,8 @@ module Expr = begin
     type ELogic = And|Or
     type EBinArith = Add|Sub|Mul|Div|Mod
     type ECmp = Lt|Le|Eq|Ge|Gt|Ne
-    type EInt = Byte|Int|Int32|Int64
-    type EFloat = Float
+    type EInt = Int|Int8|Int16|Int32|Int64|UInt|UInt8|UInt16|UInt32|UInt64
+    type EFloat = Float32|Float64
     
     type t =
         | Null
@@ -310,16 +324,30 @@ module Expr = begin
         | Unit
         // A literal boolean value.
         | Bool of bool
-        // A literal byte value.
-        | Byte of int
         // A literal native int value.
-        | Int of int
+        | Int of int64
+        // A literal int8 value.
+        | Int8 of int8
+        // A literal 16-bit int value.
+        | Int16 of int16
         // A literal 32-bit int value.
         | Int32 of int32
         // A literal 64-bit int value.
         | Int64 of int64
+        // A literal native unsigned int value.
+        | UInt of uint64
+        // A literal 8-bit uint value.
+        | UInt8 of uint8
+        // A literal 16-bit uint value.
+        | UInt16 of uint16
+        // A literal 32-bit uint value.
+        | UInt32 of uint32
+        // A literal 64-bit uint value.
+        | UInt64 of uint64
+        // A literal 32-bit floating point value.
+        | Float32 of single
         // A literal 64-bit floating point value.
-        | Float of float
+        | Float64 of double
         // A struct literal.
         | Struct of t list
         // Extract a field from a struct.
@@ -504,11 +532,18 @@ module Expr = begin
         | Null -> "Null"
         | Unit -> "Unit"
         | Bool b -> sprintf "Bool %b" b
-        | Byte n -> sprintf "Byte %d" n
         | Int n -> sprintf "Int %d" n
+        | Int8 n -> sprintf "Int8 %d" n
+        | Int16 n -> sprintf "Int16 %d" n
         | Int32 n -> sprintf "Int32 %d" n
         | Int64 n -> sprintf "Int64 %d" n
-        | Float x -> sprintf "Float %g" x
+        | UInt n -> sprintf "UInt %d" n
+        | UInt8 n -> sprintf "UInt8 %d" n
+        | UInt16 n -> sprintf "UInt16 %d" n
+        | UInt32 n -> sprintf "UInt32 %d" n
+        | UInt64 n -> sprintf "UInt64 %d" n
+        | Float32 x -> sprintf "Float32 %g" x        
+        | Float64 x -> sprintf "Float64 %g" x               
         | Struct xs ->
             sprintf "Struct[%a]" (toStrings "; ") xs
         | GetValue (s, i) -> sprintf "GetValue(%a, %d)" toString s i
@@ -645,11 +680,18 @@ module Expr = begin
         | Null
         | Unit
         | Bool _
-        | Byte _
         | Int _
+        | Int8 _
+        | Int16 _
         | Int32 _
         | Int64 _
-        | Float _
+        | UInt _
+        | UInt8 _
+        | UInt16 _
+        | UInt32 _
+        | UInt64 _
+        | Float32 _
+        | Float64 _
         | Var _
         | Load _
         | Store _
@@ -870,6 +912,9 @@ let i1Type = LLGC.int1TypeInContext(llContext)
 // LLVM int8 type signed
 let i8Type = LLGC.int8TypeInContext(llContext)
 
+// LLVM int16 type signed
+let i16Type = LLGC.int16TypeInContext(llContext)
+
 // LLVM int32 type signed
 let i32Type = LLGC.int32TypeInContext(llContext)
 
@@ -902,13 +947,7 @@ let stringType = pointerType i8Type
 /// Type of a native int.
 /// </summary>      
 /// <returns>llvm type</returns>                                                
-let intType = 
-    let wordSize = System.IntPtr.Size * 8 in
-        printfn "PtrSize: %d" wordSize;
-        match wordSize with
-            | 32 -> i32Type
-            | 64 -> i64Type
-            | _ -> failwith "Unknown word size"
+let intType = i64Type
         
 /// <summary>
 /// check whether the type is a struct
@@ -917,7 +956,7 @@ let intType =
 /// <returns>true if struct false otherwise</returns>                                                
 let isStruct : Type.t -> bool = function
     | Type.TArray _ | Type.TStruct _ | Type.TReference -> true
-    | Type.TUnit | Type.TBool | Type.TByte | Type.TInt | Type.TInt32| Type.TInt64 | Type.TFloat | Type.TFunction _ -> false
+    | Type.TUnit | Type.TBool | Type.TInt | Type.TInt8 | Type.TInt16 | Type.TInt32 | Type.TInt64 | Type.TUInt | Type.TUInt8 | Type.TUInt16 | Type.TUInt32 | Type.TUInt64 | Type.TFloat32 | Type.TFloat64 | Type.TFunction _ -> false
 
 /// <summary>
 /// check whether the type is a reference
@@ -926,7 +965,7 @@ let isStruct : Type.t -> bool = function
 /// <returns>true if struct false otherwise</returns>                                                
 let isRefType: Type.t -> bool = function
     | Type.TArray _ | Type.TReference -> true
-    | Type.TStruct _ | Type.TUnit | Type.TBool | Type.TByte | Type.TInt | Type.TInt32| Type.TInt64 | Type.TFloat | Type.TFunction _ -> false
+    | Type.TStruct _ | Type.TUnit | Type.TBool | Type.TInt | Type.TInt8 | Type.TInt16 | Type.TInt32| Type.TInt64 | Type.TUInt | Type.TUInt8 | Type.TUInt16 | Type.TUInt32 | Type.TUInt64 | Type.TFloat32 | Type.TFloat64 | Type.TFunction _ -> false
 
 // Layout of a reference type.            
 module Ref = begin
@@ -955,11 +994,18 @@ end
 let rec llTypeOf: Type.t ->LLGT.TypeRef = function
     | Type.TUnit -> intType
     | Type.TBool -> i1Type
-    | Type.TByte -> i8Type
     | Type.TInt -> intType
+    | Type.TInt8 -> i8Type
+    | Type.TInt16 -> i16Type
     | Type.TInt32 -> i32Type
     | Type.TInt64 -> i64Type
-    | Type.TFloat -> floatType
+    | Type.TUInt -> intType
+    | Type.TUInt8 -> i8Type
+    | Type.TUInt16 -> i16Type
+    | Type.TUInt32 -> i32Type
+    | Type.TUInt64 -> i64Type
+    | Type.TFloat32 -> singleType
+    | Type.TFloat64 -> doubleType
     | Type.TStruct tys -> structTypeOf tys
     | Type.TFunction (ty, rty) -> pointerType (functionTypeOf true (ty, rty))
     | Type.TArray _ | Type.TReference -> Ref.llType
@@ -1037,8 +1083,9 @@ let printTypeOf v m =
     let (result:string) = LLVM.Extra.typeToString m (llTypeOf v)
     let result = result.Replace("int1", "i1") in
     let result = result.Replace("int8", "i8") in
-    let result = result.Replace("i32", "i32") in
-    let result = result.Replace("i64", "i64") in
+    let result = result.Replace("int16", "i16") in
+    let result = result.Replace("int32", "i32") in
+    let result = result.Replace("int64", "i64") in
     printfn "%s" result;
 
 /// <summary>
@@ -1051,8 +1098,9 @@ let stringTypeOf v m =
     let result = LLVM.Extra.typeToString m (LLGC.typeOf v)
     let result = result.Replace("int1", "i1") in
     let result = result.Replace("int8", "i8") in
-    let result = result.Replace("i32", "i32") in
-    let result = result.Replace("i64", "i64") in
+    let result = result.Replace("int16", "i16") in
+    let result = result.Replace("int32", "i32") in
+    let result = result.Replace("int64", "i64") in
     result
 
 /// <summary>
@@ -1063,12 +1111,7 @@ let stringTypeOf v m =
 /// <param name="v">llvm value</param>
 /// <param name="m">llvm module</param>
 /// <returns>unit</returns>                                                
-let nativeIntType (n:int) = 
-    let wordSize = System.IntPtr.Size * 8 in
-        match wordSize with
-            | 32 -> LLVM.Core.constInt32 n
-            | 64 -> LLVM.Core.constInt64 ((int64)n)
-            | _ -> failwith "Unknown word size"
+let nativeIntType (n:int64) = LLVM.Core.constInt64 ((int64)n)
 
 // Create an LLVM native int.
 let intn n = nativeIntType n
@@ -1080,12 +1123,17 @@ let unitn = LLGC.getUndef intType
 let int8n n = LLVM.Core.constInt8 n
 
 // Create an LLVM 32-bit int.
+let int16n n = LLVM.Core.constInt16 n
+
+// Create an LLVM 32-bit int.
 let int32n n = LLVM.Core.constInt32 n
 
 // Create an LLVM 64-bit int.
 let int64n n = LLVM.Core.constInt64 n
 
-let float64n x = LLVM.Core.constDouble x
+let float32f x = LLVM.Core.constFloat x
+
+let float64f x = LLVM.Core.constDouble x
 
 let nulln = LLGC.constNull stringType
 
@@ -1093,13 +1141,20 @@ let nulln = LLGC.constNull stringType
 let rec nullOf = function
     | Type.TUnit -> Unit
     | Type.TBool -> Bool false
-    | Type.TByte -> Byte 0
-    | Type.TInt -> Int 0
+    | Type.TInt -> Int 0L
+    | Type.TInt8 -> Int8 0y
+    | Type.TInt16 -> Int16 0s
     | Type.TInt32 -> Int32 0
     | Type.TInt64 -> Int64 0L
-    | Type.TFloat -> Float 0.0
+    | Type.TUInt -> UInt 0UL
+    | Type.TUInt8 -> UInt8 0uy
+    | Type.TUInt16 -> UInt16 0us
+    | Type.TUInt32 -> UInt32 0u
+    | Type.TUInt64 -> UInt64 0UL
+    | Type.TFloat32 -> Float32 0.0f
+    | Type.TFloat64 -> Float64 0.0
     | Type.TStruct tys -> Struct(List.map nullOf tys)
-    | Type.TArray ty -> Alloc(Int 0, nullOf ty)
+    | Type.TArray ty -> Alloc(Int 0L, nullOf ty)
     | Type.TFunction (_, _) as ty -> Llvalue(nulln, ty)
     | Type.TReference -> Null
 
@@ -1114,16 +1169,13 @@ let findByKey k kvs =
         eprintf "Unknown %s\n" k;
         raise KeyNotFoundException
 
-
-    
-
 // Type used to represent stacks and unordered sequences (bags).        
 module Sequence = begin
     // Type of a bag (unsorted collection).
     let ty ty = Type.TStruct[Type.TInt; Type.TArray ty]
     
     // Construct an empty sequence.
-    let empty x = Struct[Int 0; Alloc(Int Options.MaxDepth, x)]
+    let empty x = Struct[Int 0L; Alloc(Int Options.MaxDepth, x)]
     
     // Extract internal array from sequence.
     let arr seq = GetValue(seq, 1)
@@ -1143,19 +1195,19 @@ module Sequence = begin
     let push(seq, x) =
         compound
             [ set(seq, count seq, x);
-              Struct[count seq +. Int 1; arr seq] ]
+              Struct[count seq +. Int 1L; arr seq] ]
               
     let removeAt(seq, i) =
         compound
-            [ set(seq, i, get(seq, count seq -. Int 1));
-              Struct[count seq -. Int 1; arr seq] ]              
+            [ set(seq, i, get(seq, count seq -. Int 1L));
+              Struct[count seq -. Int 1L; arr seq] ]              
             
 end    
 
 // Run/suspend state used for individial threads and global objective to
 //    cooperatively synchronize for the stop-the-world GC phase.
 module ThreadState = begin
-    let run, suspend = 0, 1
+    let run, suspend = 0L, 1L
 end    
 
 // Representation of thread-local data.
@@ -1177,9 +1229,9 @@ module ThreadLocal = begin
         compound
             [ dPrintf("ThreadLocal.Make\n", []);
               f "mutex" CreateMutex
-                (f "state" (Alloc(Int 1, Int ThreadState.run))
+                (f "state" (Alloc(Int 1L, Int ThreadState.run))
                     (f "stack" (Sequence.empty Null)
-                        (f "thread_local" (Alloc(Int 1, Struct[Int 0; Var "mutex"; Var "state"; Var "stack"]))
+                        (f "thread_local" (Alloc(Int 1L, Struct[Int 0L; Var "mutex"; Var "state"; Var "stack"]))
                         (compound [dPrintf("ThreadLocal.make ends\n", []);
                                    Var "thread_local"])))) ]
 
@@ -1217,7 +1269,7 @@ module ThreadLocal = begin
     /// <param name="tl">ThreadLocal</param>
     /// <returns>expr</returns>                                                
     let free tl = 
-        Let("tl", Get(tl, Int 0),
+        Let("tl", Get(tl, Int 0L),
             compound
                 [ dPrintf("Freeing thread-local data at %p\n", [AddressOf tl]);
                   Free(stateOf(Var "tl"));
@@ -1230,11 +1282,11 @@ module ThreadLocal = begin
     /// <param name="tl">ThreadLocal</param>
     /// <returns>state</returns>                                                                                            
     let loadState tl =
-        Let("tl", Get(tl, Int 0),
+        Let("tl", Get(tl, Int 0L),
             compound [ dPrintf("%p ThreadLocal.LoadState %p\n",
                                 [AddressOf GetThreadLocal; mutexOf(Var "tl")]);
                        lock(mutexOf(Var "tl"),
-                            Get(stateOf(Var "tl"), Int 0)) ])
+                            Get(stateOf(Var "tl"), Int 0L)) ])
 
     /// <summary>
     /// generate state store to threadlocal data
@@ -1243,11 +1295,11 @@ module ThreadLocal = begin
     /// <param name="n">FIXME: state</param>
     /// <returns>expr</returns>                                                                                            
     let storeState tl n =
-        Let("tl", Get(tl, Int 0),
+        Let("tl", Get(tl, Int 0L),
             compound [ dPrintf("%p ThreadLocal.StoreState %p\n",
                                 [AddressOf GetThreadLocal; mutexOf(Var "tl")]);
                        lock(mutexOf(Var "tl"),
-                            Set(stateOf(Var "tl"), Int 0, Int n)) ])
+                            Set(stateOf(Var "tl"), Int 0L, Int n)) ])
 
     /// <summary>
     /// generate eq for two threadlocal
@@ -1268,7 +1320,7 @@ module ThreadGlobal = begin
     /// generate threadglobal mutex
     /// </summary>      
     /// <returns>expr</returns>                                                                                                                                     
-    let mutex = makeGlobalVar "threadglobal_mutex" (intn 0) M
+    let mutex = makeGlobalVar "threadglobal_mutex" (intn 0L) M
 
     // type of threadglobal
     let ty = Sequence.ty ThreadLocal.ty
@@ -1306,7 +1358,7 @@ module ThreadGlobal = begin
     /// generate threadglobal state
     /// </summary>      
     /// <returns>expr</returns>                                                                                                                                                                                                                   
-    let state = makeGlobalVar "threadglobal_state" (intn 0) M
+    let state = makeGlobalVar "threadglobal_state" (intn 0L) M
 
     /// <summary>
     /// generate threadglobal state load
@@ -1341,7 +1393,7 @@ let enterBlockingSection() =
                 [ dPrintf("%p entering blocking section with %d roots\n",
                             [AddressOf GetThreadLocal;
                              Sequence.count(ThreadLocal.stackOf
-                                        (Get(GetThreadLocal, Int 0)))])   
+                                        (Get(GetThreadLocal, Int 0L)))])   
                   ThreadGlobal.lock
                     (ThreadLocal.storeState GetThreadLocal ThreadState.suspend) ])
     else
@@ -1379,13 +1431,13 @@ let visitStack =
 /// Number of unvisited references on the visit stack.
 /// </summary>      
 /// <returns>expr</returns>                                                                                                                                                                                                                   
-let nVisit = makeGlobalVar "n_visit" (intn 0) M
+let nVisit = makeGlobalVar "n_visit" (intn 0L) M
 
 /// <summary>
 /// The allocated list is an array of reference types.
 /// </summary>      
 /// <returns>expr</returns>                                                                                                                                                                                                                   
-let allocatedMutex = makeGlobalVar "allocated_mutex" (intn 0) M
+let allocatedMutex = makeGlobalVar "allocated_mutex" (intn 0L) M
 
 /// <summary>
 /// Allocated references.
@@ -1399,14 +1451,14 @@ let allocated =
 /// </summary>      
 /// <returns>expr</returns>                                                                                                                                                                                                                   
 let nAllocated = 
-    makeGlobalVar "n_allocated" (intn 0) M
+    makeGlobalVar "n_allocated" (intn 0L) M
 
 /// <summary>
 /// Number of allocations required to incur a garbage collection.
 /// </summary>      
 /// <returns>expr</returns>                                                                                                                                                                                                                   
 let quota =
-    makeGlobalVar "quota" (intn 0) M
+    makeGlobalVar "quota" (intn 0L) M
         
 module Extern = begin
     /// <summary>
@@ -1557,19 +1609,19 @@ end
 /// LLVM global to store the total time spent in the suspend phase.
 /// </summary>      
 /// <returns>expr</returns>                                                                                                                                                                                                                   
-let suspendTime = makeGlobalVar "suspend_time" (float64n 0.0) M
+let suspendTime = makeGlobalVar "suspend_time" (float64f 0.0) M
 
 /// <summary>
 /// LLVM global to store the total time spent in the mark phase.
 /// </summary>      
 /// <returns>expr</returns>                                                                                                                                                                                                                   
-let markTime = makeGlobalVar "mark_time" (float64n 0.0) M
+let markTime = makeGlobalVar "mark_time" (float64f 0.0) M
 
 /// <summary>
 /// LLVM global to store the total time spent in the sweep phase.
 /// </summary>      
 /// <returns>expr</returns>                                                                                                                                                                                                                   
-let sweepTime = makeGlobalVar "sweep_time" (float64n 0.0) M
+let sweepTime = makeGlobalVar "sweep_time" (float64f 0.0) M
 
 /// <summary>
 /// Default calling convention used by FsHlvm.
@@ -1662,7 +1714,7 @@ type State private (state: StateRecord) = class
         State({ PassTl = passTl; 
                  Func = func; 
                  Blk = LLGC.getEntryBasicBlock func; 
-                 Odepth = lazy(intn 0); 
+                 Odepth = lazy(intn 0L); 
                  GcEnabled = true; 
                  Roots = false; 
                  ThreadLocal = if passTl then InternalType else ExternalType })
@@ -1803,11 +1855,11 @@ type State private (state: StateRecord) = class
         if !Options.ShadowStackEnabled then begin
             if !Options.Debug then
                 printfn "State.Push";
-            let d = self.Load depth [intn 0] in
-            let data = State.ExtractValue self (self.Load stack [intn 0]) Ref.data in
+            let d = self.Load depth [intn 0L] in
+            let data = State.ExtractValue self (self.Load stack [intn 0L]) Ref.data in
             let data = self.Bitcast data (pointerType(LLGC.typeOf v)) in
             self.Store data [d] v;
-            self.Store depth [intn 0] (buildAdd self.Bb (intn 1) d "")
+            self.Store depth [intn 0L] (buildAdd self.Bb (intn 1L) d "")
         end
             
     /// <summary>
@@ -1820,8 +1872,8 @@ type State private (state: StateRecord) = class
         let data = 
             state.Bitcast state.ThreadLocal
                 (pointerType (llTypeOf ThreadLocal.internalTy)) in
-        state.Gep data [intn 0; int32n 3; int32n 0],
-        state.Gep data [intn 0; int32n 3; int32n 1]
+        state.Gep data [intn 0L; int32n 3; int32n 0],
+        state.Gep data [intn 0L; int32n 3; int32n 1]
 
     /// <summary>
     /// generate an LLVM builder block instruction.
@@ -1866,7 +1918,7 @@ type State private (state: StateRecord) = class
     /// <returns>expr</returns>                                                                                                                                                                                                                   
     member x.Malloc llTy n =
         let size = LLGC.buildTrunc x.Bb (LLGC.sizeOf llTy) intType "" in
-        let llalloc = x.Load Extern.alloc.ptr [intn 0] in
+        let llalloc = x.Load Extern.alloc.ptr [intn 0L] in
         let data = LLVM.Core.buildCall x.Bb llalloc [|n; size|] "" in
         x.Bitcast data (pointerType llTy)
     
@@ -1876,7 +1928,7 @@ type State private (state: StateRecord) = class
     /// <param name="y">value</param>
     /// <returns>expr</returns>                                                                                                                                                                                                                   
     member x.Free y =
-        let llFree = x.Load Extern.free.ptr [intn 0] in
+        let llFree = x.Load Extern.free.ptr [intn 0L] in
         ignore(LLVM.Core.buildCall x.Bb llFree [|y|] "")
 
     /// <summary>
@@ -1978,7 +2030,7 @@ type State private (state: StateRecord) = class
                     if !Options.Debug then
                         printfn "State.Restore\n";
                     let stackDepth, _ = State.getStack x in
-                        x.Store stackDepth [intn 0] x.Odepth
+                        x.Store stackDepth [intn 0L] x.Odepth
                 end
     
     /// <summary>
@@ -2021,7 +2073,7 @@ type State private (state: StateRecord) = class
         | InternalType _ -> (LLGC.getParam x.GetFunc 0u)
         | ExternalType _ ->
             let getThreadLocal =
-                x.Load Extern.getThreadLocal.ptr [intn 0] in
+                x.Load Extern.getThreadLocal.ptr [intn 0L] in
             let ptr = x.Call ((uint32)(CallConv.CCallConv)) getThreadLocal [] in
             x.PtrOfInt ptr stringType
 
@@ -2042,7 +2094,7 @@ type State private (state: StateRecord) = class
     /// </summary>      
     /// <returns>int</returns>                                                                                                                                                                                                                   
     member x.Time =
-        let llTime = x.Load Extern.time.ptr [intn 0] in
+        let llTime = x.Load Extern.time.ptr [intn 0L] in
         LLVM.Core.buildCall x.Bb llTime [||] ""       
 end       
 
@@ -2069,9 +2121,9 @@ let mkState (passTl:bool) func =
     let depth (state:State) = 
         if state.GetGcEnabled && !Options.ShadowStackEnabled then
             let stackDepth, _ = State.getStack state in
-            (state.Load stackDepth [intn 0])
+            (state.Load stackDepth [intn 0L])
         else
-            intn 0 in
+            intn 0L in
     let depth0 = lazy(depth state) in
     state.SetDepth depth0
 
@@ -2191,12 +2243,12 @@ let runFunction llf =
 /// <returns>expr</returns>                                                                                                                                                                                                            
 let gcPush p =
         Let("p", p,
-            If(AddressOf(Var "p") =. Int 0, Unit,
+            If(AddressOf(Var "p") =. Int 0L, Unit,
                 Let("a", Load(visitStack, Type.TArray Type.TReference),
                     Let("n", Load(nVisit, Type.TInt),
                         compound
                             [ Expr.Set(Var "a", Var "n", Var "p");
-                              Store(nVisit, Var "n" +. Int 1) ]))))
+                              Store(nVisit, Var "n" +. Int 1L) ]))))
 
 /// <summary>
 /// generate gc check expr
@@ -2208,7 +2260,7 @@ let gcCheck () =
         Let("tick", 
                 GetThreadTick,
                 If(Var "tick" <. Int Options.Ticks,
-                        SetThreadTick(Int 1 +. Var "tick"),
+                        SetThreadTick(Int 1L +. Var "tick"),
                         Apply(Var "gc_check", [])))
   else
     Unit
@@ -2263,17 +2315,24 @@ and exprAux vars (state: State) = function
                 initType name llTy llVisit llPrint;
                 llTyNull := Some llTy;
                 llTy in
-        let ret = state, (mkRef state llTy (intn 0) nulln nulln, TReference) in
+        let ret = state, (mkRef state llTy (intn 0L) nulln nulln, TReference) in
         ret
     | Unit -> 
         let ret = state, (unitn, Type.TUnit) in
         ret
     | Bool (b:bool) -> state, (constInt i1Type (if b then 1UL else 0UL) false, Type.TBool)
-    | Byte n -> state, (int8n ((int8) n), Type.TByte)
     | Int n -> state, (intn n, Type.TInt)
+    | Int8 n -> state, (int8n ((int8)n), Type.TInt8)
+    | Int16 n -> state, (int16n ((int16)n), Type.TInt16)
     | Int32 n -> state, (int32n ((int32)n), Type.TInt32)
     | Int64 n -> state, (int64n ((int64)n), Type.TInt64)
-    | Float x -> state, (float64n ((double)x), Type.TFloat)
+    | UInt n -> state, (intn (int64(n)), Type.TInt)
+    | UInt8 n -> state, (int8n ((int8)n), Type.TUInt16)
+    | UInt16 n -> state, (int16n ((int16)n), Type.TInt16)
+    | UInt32 n -> state, (int32n ((int32)n), Type.TInt32)
+    | UInt64 n -> state, (int64n ((int64)n), Type.TInt64)
+    | Float32 x -> state, (float32f ((single)x), Type.TFloat32)
+    | Float64 x -> state, (float64f ((double)x), Type.TFloat64)
     | Struct fs ->
         let state, (fs,tys_f) = exprs vars state fs in
         state, (mkStruct state fs, Type.TStruct tys_f)
@@ -2292,13 +2351,13 @@ and exprAux vars (state: State) = function
         typeCheck "Type constructor argument of wrong type" ty tyX;
         let (state:State), s =
             match tyX with
-            | Type.TUnit -> state, mkRef state llTy (intn 0) nulln nulln
+            | Type.TUnit -> state, mkRef state llTy (intn 0L) nulln nulln
             | _ ->
-                let px = state.Malloc (llTypeOf tyX) (intn 1) in
-                state.Store px [intn 0] x;
-                let mark = state.Malloc i8Type (intn 1) in
-                state.Store mark [intn 0] (int8n 0y);
-                let s = mkRef state llTy (intn 0) px mark in
+                let px = state.Malloc (llTypeOf tyX) (intn 1L) in
+                state.Store px [intn 0L] x;
+                let mark = state.Malloc i8Type (intn 1L) in
+                state.Store mark [intn 0L] (int8n 0y);
+                let s = mkRef state llTy (intn 0L) px mark in
                 let state = gcRoot vars state (lazy s) TReference in
                 let state = gcAlloc vars state s in
                 state, s in
@@ -2317,7 +2376,7 @@ and exprAux vars (state: State) = function
             if ty = Type.TUnit then (state, (unitn, Type.TUnit)) else
                         let v = State.ExtractValue state f Ref.data in
                         let v = state.Bitcast v (pointerType(llTypeOf ty)) in
-                        let v = state.Load v [intn 0] in
+                        let v = state.Load v [intn 0L] in
                         let state = gcRoot vars state (lazy v) ty in
                         state, (v, ty)
     | Var x ->
@@ -2327,23 +2386,23 @@ and exprAux vars (state: State) = function
         let state, (f, tyF) = expr vars state f in
         let build =
             match tyF with
-            | Type.TByte | Type.TInt | Type.TInt32 | Type.TInt64 -> LLGC.buildNeg
-            | Type.TFloat -> LLGC.buildFNeg
+            | Type.TInt | Type.TInt8 | Type.TInt16 | Type.TInt32 | Type.TInt64 -> LLGC.buildNeg
+            | Type.TFloat32 | Type.TFloat64 -> LLGC.buildFNeg
             | _ -> invalidArg "expr.unarith" "" in       
         state, (build state.Bb f "", tyF)
     | BinArith(op, f, g) ->
         let state, (f, fTy), (g, gTy) = expr2 vars state f g in
         let build =
             match op, (fTy, gTy) with
-            | Add, (Type.TByte, Type.TByte | Type.TInt, Type.TInt | Type.TInt32, Type.TInt32 | Type.TInt64, Type.TInt64) -> LLGC.buildAdd
-            | Sub, (Type.TByte, Type.TByte | Type.TInt, Type.TInt | Type.TInt32, Type.TInt32 | Type.TInt64, Type.TInt64) -> LLGC.buildSub
-            | Mul, (Type.TByte, Type.TByte | Type.TInt, Type.TInt | Type.TInt32, Type.TInt32 | Type.TInt64, Type.TInt64) -> LLGC.buildMul
-            | Add, (Type.TFloat, Type.TFloat) -> LLGC.buildFAdd
-            | Sub, (Type.TFloat, Type.TFloat) -> LLGC.buildFSub
-            | Mul, (Type.TFloat, Type.TFloat) -> LLGC.buildFMul
-            | Div, (Type.TByte, Type.TByte |Type.TInt, Type.TInt | Type.TInt32, Type.TInt32 | Type.TInt64, Type.TInt64) -> LLGC.buildSDiv
-            | Mod, (Type.TByte, Type.TByte | Type.TInt, Type.TInt | Type.TInt32, Type.TInt32 | Type.TInt64, Type.TInt64) -> LLGC.buildSRem
-            | Div, (Type.TFloat, Type.TFloat) -> LLGC.buildFDiv
+            | Add, (Type.TInt, Type.TInt | Type.TInt8, Type.TInt8 | Type.TInt16, Type.TInt16 | Type.TInt32, Type.TInt32 | Type.TInt64, Type.TInt64 | Type.TUInt, Type.TUInt | Type.TUInt8, Type.TUInt8 | Type.TUInt16, Type.TUInt16 | Type.TUInt32, Type.TUInt32 | Type.TUInt64, Type.TUInt64) -> LLGC.buildAdd
+            | Sub, (Type.TInt, Type.TInt | Type.TInt8, Type.TInt8 | Type.TInt16, Type.TInt16 | Type.TInt32, Type.TInt32 | Type.TInt64, Type.TInt64 | Type.TUInt, Type.TUInt | Type.TUInt8, Type.TUInt8 | Type.TUInt16, Type.TUInt16 | Type.TUInt32, Type.TUInt32 | Type.TUInt64, Type.TUInt64) -> LLGC.buildSub
+            | Mul, (Type.TInt, Type.TInt | Type.TInt8, Type.TInt8 | Type.TInt16, Type.TInt16 | Type.TInt32, Type.TInt32 | Type.TInt64, Type.TInt64 | Type.TUInt, Type.TUInt | Type.TUInt8, Type.TUInt8 | Type.TUInt16, Type.TUInt16 | Type.TUInt32, Type.TUInt32 | Type.TUInt64, Type.TUInt64) -> LLGC.buildMul
+            | Add, (Type.TFloat32, Type.TFloat32 | Type.TFloat64, Type.TFloat64) -> LLGC.buildFAdd
+            | Sub, (Type.TFloat32, Type.TFloat32 | Type.TFloat64, Type.TFloat64) -> LLGC.buildFSub
+            | Mul, (Type.TFloat32, Type.TFloat32 | Type.TFloat64, Type.TFloat64) -> LLGC.buildFMul
+            | Div, (Type.TInt, Type.TInt | Type.TInt8, Type.TInt8 | Type.TInt16, Type.TInt16 | Type.TInt32, Type.TInt32 | Type.TInt64, Type.TInt64 | Type.TUInt, Type.TUInt | Type.TUInt8, Type.TUInt8 | Type.TUInt16, Type.TUInt16 | Type.TUInt32, Type.TUInt32 | Type.TUInt64, Type.TUInt64) -> LLGC.buildSDiv
+            | Mod, (Type.TInt, Type.TInt | Type.TInt8, Type.TInt8 | Type.TInt16, Type.TInt16 | Type.TInt32, Type.TInt32 | Type.TInt64, Type.TInt64 | Type.TUInt, Type.TUInt | Type.TUInt8, Type.TUInt8 | Type.TUInt16, Type.TUInt16 | Type.TUInt32, Type.TUInt32 | Type.TUInt64, Type.TUInt64) -> LLGC.buildSRem
+            | Div, (Type.TFloat32, Type.TFloat32 | Type.TFloat64, Type.TFloat64) -> LLGC.buildFDiv
             | _ -> invalidArg "expr.arith"
                         (sprintf "%s, %s" (Type.toString() fTy) (Type.toString() gTy)) in
 
@@ -2352,7 +2411,7 @@ and exprAux vars (state: State) = function
         let state, (f, fTy), (g, gTy) = expr2 vars state f g in
         let build =
             match fTy, gTy with
-            | TByte, TByte | TInt, TInt | TInt32, TInt32 | TInt64, TInt64 ->
+            | Type.TInt, Type.TInt | Type.TInt8, Type.TInt8 | Type.TInt16, Type.TInt16 | Type.TInt32, Type.TInt32 | Type.TInt64, Type.TInt64 | Type.TUInt, Type.TUInt | Type.TUInt8, Type.TUInt8 | Type.TUInt16, Type.TUInt16 | Type.TUInt32, Type.TUInt32 | Type.TUInt64, Type.TUInt64 ->
                 let op = 
                     match op with
                         | Lt -> LLGC.IntPredicate.IntSLT
@@ -2362,7 +2421,7 @@ and exprAux vars (state: State) = function
                         | Ge -> LLGC.IntPredicate.IntSGE
                         | Gt -> LLGC.IntPredicate.IntSGT in
                 (LLGC.buildICmp state.Bb op)
-            | TFloat, TFloat ->
+            | Type.TFloat32, Type.TFloat32 | Type.TFloat64, Type.TFloat64 ->
                 let op = 
                     match op with
                         | Lt -> LLGC.RealPredicate.RealOLT
@@ -2410,7 +2469,7 @@ and exprAux vars (state: State) = function
         typeCheck "Allow with non-int length" tyN Type.TInt;
         let data = state.Malloc (llTypeOf tyX) n in
         let state, (markSize, _) =
-            expr vars state (If(Llvalue(n, Type.TInt) =. Int 0, Int 0, Int 1)) in
+            expr vars state (If(Llvalue(n, Type.TInt) =. Int 0L, Int 0L, Int 1L)) in
             let mark = state.Malloc i8Type markSize in
             let a = mkRef state (mkArrayType tyX) n data mark in
             let tyA = TArray tyX in
@@ -2421,9 +2480,9 @@ and exprAux vars (state: State) = function
                         compound
                             [ Apply(fill, [ Var "a";
                                             Llvalue(x, tyX);
-                                            Int 0;
+                                            Int 0L;
                                             Llvalue(n, Type.TInt) ]);
-                             If(AddressOf(Var "a") =. Int 0, Unit, SetMark(Var "a", 0)) ])) in
+                             If(AddressOf(Var "a") =. Int 0L, Unit, SetMark(Var "a", 0)) ])) in
         let state = gcRoot vars state (lazy a) tyA in
         let state = gcAlloc vars state a in
         state, (a, tyA)
@@ -2442,7 +2501,7 @@ and exprAux vars (state: State) = function
         typeCheck "Index" tyI TInt;
         let state, _ =
             expr vars state
-                (If((Llvalue(i, TInt) >=. Int 0) &&. (Llvalue(i, Type.TInt) <. Length(Llvalue(a, tyA))), Unit,
+                (If((Llvalue(i, TInt) >=. Int 0L) &&. (Llvalue(i, Type.TInt) <. Length(Llvalue(a, tyA))), Unit,
                     compound [ Printf ("Array index out of bounds\n", []);
                                Exit(Int32 3) ])) in
         let data = State.ExtractValue state a Ref.data in
@@ -2456,7 +2515,7 @@ and exprAux vars (state: State) = function
         typeCheck "Set with non-int index" tyI TInt;
         let state, _ =
             expr vars state
-                (If((Llvalue(i, TInt) >=. Int 0) &&. (Llvalue(i, Type.TInt) <. Length(Llvalue(a, tyA))), Unit,
+                (If((Llvalue(i, TInt) >=. Int 0L) &&. (Llvalue(i, Type.TInt) <. Length(Llvalue(a, tyA))), Unit,
                     compound [ Printf("Array index out of bounds\n", []);
                                Exit(Int32 2) ])) in
         let data = State.ExtractValue state a Ref.data in
@@ -2490,7 +2549,7 @@ and exprAux vars (state: State) = function
                 List.iter2 (typeCheck "Arg") tysArg tysArg2;
                 let ret = state.Alloca (llTypeOf tyRet) in
                 let _ = state.Call ((uint32)cc) f (state.ThreadLocal :: ret :: args) in
-                state.Load ret [intn 0], tyRet
+                state.Load ret [intn 0L], tyRet
             /// Non-tail call returning single value.
             | Type.TFunction(tysArg2, tyRet) ->
                 List.iter2 (typeCheck "Arg") tysArg tysArg2;
@@ -2499,7 +2558,7 @@ and exprAux vars (state: State) = function
         let state = gcRoot vars state (lazy ret) tyRet in
         state, (ret, tyRet)
     | Printf(spec, args) ->            
-        let specx = state.Gep (mkString (spec+"\x00")) [int32n 0; intn 0] in
+        let specx = state.Gep (mkString (spec+"\x00")) [int32n 0; intn 0L] in
         let state, (args, _) = exprs vars state args in
         let ext x = 
             if (LLGC.typeOf x <> stringType) then x else
@@ -2511,23 +2570,149 @@ and exprAux vars (state: State) = function
         let ty = TInt in
         let state, (f, tyF) = expr vars state f in
         match tyF, ty with
-        | TByte, TInt | TInt, TInt64 -> 
+        | TInt8, TInt
+        | TInt8, TInt16
+        | TInt8, TInt32
+        | TInt8, TInt64
+        | TInt8, TUInt
+        | TInt8, TUInt16
+        | TInt8, TUInt32
+        | TInt8, TUInt64
+        | TInt16, TInt
+        | TInt16, TInt32
+        | TInt16, TInt64
+        | TInt16, TUInt
+        | TInt16, TUInt32
+        | TInt16, TUInt64
+        | TInt32, TInt
+        | TInt32, TInt64
+        | TInt32, TUInt
+        | TInt32, TUInt64
+        | TUInt8, TInt
+        | TUInt8, TInt16
+        | TUInt8, TInt32
+        | TUInt8, TInt64
+        | TUInt8, TUInt
+        | TUInt8, TUInt16
+        | TUInt8, TUInt32
+        | TUInt8, TUInt64
+        | TUInt16, TInt
+        | TUInt16, TInt32
+        | TUInt16, TInt64
+        | TUInt16, TUInt
+        | TUInt16, TUInt32
+        | TUInt16, TUInt64
+        | TUInt32, TInt
+        | TUInt32, TInt64
+        | TUInt32, TUInt
+        | TUInt32, TUInt64 ->
+            //extend integer
             state, (LLGC.buildZExt state.Bb f (llTypeOf ty) "", ty)
-        | TInt64, TInt | TInt, TByte -> 
+        | TInt, TInt8
+        | TInt16, TInt8
+        | TInt32, TInt8
+        | TInt64, TInt8
+        | TUInt, TInt8
+        | TUInt16, TInt8
+        | TUInt32, TInt8
+        | TUInt64, TInt8
+        | TInt, TInt16
+        | TInt32, TInt16
+        | TInt64, TInt16
+        | TUInt, TInt16
+        | TUInt32, TInt16
+        | TUInt64, TInt16
+        | TInt, TInt32
+        | TInt64, TInt32
+        | TUInt, TInt32
+        | TUInt64, TInt32
+        | TInt, TUInt8
+        | TInt16, TUInt8
+        | TInt32, TUInt8
+        | TInt64, TUInt8
+        | TUInt, TUInt8
+        | TUInt16, TUInt8
+        | TUInt32, TUInt8
+        | TUInt64, TUInt8
+        | TInt, TUInt16
+        | TInt32, TUInt16
+        | TInt64, TUInt16
+        | TUInt, TUInt16
+        | TUInt32, TUInt16
+        | TUInt64, TUInt16
+        | TInt, TUInt32
+        | TInt64, TUInt32
+        | TUInt, TUInt32
+        | TUInt64, TUInt32 ->
+            //truncate integer
             state, (LLGC.buildTrunc state.Bb f (llTypeOf ty) "", ty)
-        | TByte, TByte | TInt, TInt | TInt64, TInt64 ->
-            //FIXME
+        | TInt, TInt
+        | TInt8, TInt8 
+        | TInt16, TInt16 
+        | TInt32, TInt32 
+        | TInt64, TInt64 
+        | TInt, TUInt
+        | TInt8, TUInt8 
+        | TInt16, TUInt16 
+        | TInt32, TUInt32 
+        | TInt64, TUInt64 
+        | TUInt, TUInt
+        | TUInt8, TUInt8 
+        | TUInt16, TUInt16 
+        | TUInt32, TUInt32 
+        | TUInt64, TUInt64 
+        | TUInt, TInt
+        | TUInt8, TInt8 
+        | TUInt16, TInt16 
+        | TUInt32, TInt32 
+        | TUInt64, TInt64 
+        //FIXME: 64 bit only native int
+        | TInt, TInt64
+        | TInt, TUInt64        
+        | TUInt, TInt64
+        | TUInt, TUInt64
+        | TInt64, TInt
+        | TUInt64, TInt
+        | TInt64, TInt
+        | TUInt64, TInt ->
+            //no conversion
             state, (unitn, Type.TUnit)
         | _,_ -> invalidArg "IntOfInt" ""
-    | IntOfFloat (ty, f) ->
-        let ty = TInt in
+    | IntOfFloat (ety, f) ->
+        let ty = 
+            match ety with
+            | EInt.Int -> TInt
+            | EInt.Int8 -> TInt8
+            | EInt.Int16 -> TInt16
+            | EInt.Int32 -> TInt32
+            | EInt.Int64 -> TInt64
+            | EInt.UInt -> TUInt
+            | EInt.UInt8 -> TUInt8
+            | EInt.UInt16 -> TUInt16
+            | EInt.UInt32 -> TUInt32
+            | EInt.UInt64 -> TUInt64
+        let tyc = 
+            match ety with
+            | EInt.Int -> Type.TInt
+            | EInt.Int8 -> Type.TInt8
+            | EInt.Int16 -> Type.TInt16
+            | EInt.Int32 -> Type.TInt32
+            | EInt.Int64 -> Type.TInt64
+            | EInt.UInt -> Type.TUInt
+            | EInt.UInt8 -> Type.TUInt8
+            | EInt.UInt16 -> Type.TUInt16
+            | EInt.UInt32 -> Type.TUInt32
+            | EInt.UInt64 -> Type.TUInt64
         let (state: State), (f, tyF) = expr vars state f in
-        typeCheck "IntOfFloat of non-float" tyF Type.TFloat;
+        typeCheck "IntOfFloat of non-float" tyF tyc;
         state, (LLGC.buildFPToSI state.Bb f (llTypeOf ty) "", ty)
-    | FloatOfInt (ty, f) ->
-        let ty = TFloat in
+    | FloatOfInt (ety, f) ->
+        let ty = 
+            match ety with
+            | EFloat.Float32 -> TFloat32
+            | EFloat.Float64 -> TFloat64
         let (state:State), (f, tyF) = expr vars state f in
-        // FIXME: Should also handle Byte and Int64 integers.
+        //FIXME: support other interger types
         typeCheck "FloatOfInt of non-int" tyF Type.TInt;
         state, (LLGC.buildSIToFP state.Bb f (llTypeOf ty) "", ty)
     | Print f ->
@@ -2539,10 +2724,18 @@ and exprAux vars (state: State) = function
             | Type.TBool ->
                 expr vars state
                     (If(Var "x", Printf("true", []), Printf("false", [])))
-            | Type.TByte | Type.TInt -> expr vars state (Printf("%d", [Var "x"]))
-            | Type.TInt32 -> expr vars state (Printf("%lld", [Var "x"]))
-            | Type.TInt64 -> expr vars state (Printf("%lldL", [Var "x"]))
-            | Type.TFloat -> expr vars state (Printf("%#g", [Var "x"]))
+            | Type.TInt -> expr vars state (Printf("%lld", [Var "x"]))
+            | Type.TInt8 -> expr vars state (Printf("%d", [Var "x"]))
+            | Type.TInt16 -> expr vars state (Printf("%hd", [Var "x"]))
+            | Type.TInt32 -> expr vars state (Printf("%ld", [Var "x"]))
+            | Type.TInt64 -> expr vars state (Printf("%lld", [Var "x"]))
+            | Type.TUInt -> expr vars state (Printf("%ulld", [Var "x"]))
+            | Type.TUInt8 -> expr vars state (Printf("%ud", [Var "x"]))
+            | Type.TUInt16 -> expr vars state (Printf("%uhd", [Var "x"]))
+            | Type.TUInt32 -> expr vars state (Printf("%uld", [Var "x"]))
+            | Type.TUInt64 -> expr vars state (Printf("%ulld", [Var "x"]))
+            | Type.TFloat32 -> expr vars state (Printf("%#g", [Var "x"]))
+            | Type.TFloat64 -> expr vars state (Printf("%#g", [Var "x"]))
             | Type.TStruct tys ->
                 let aux i = Print(GetValue(Var "x", i)) in
                 let xs = List.init (List.length tys) aux in
@@ -2556,7 +2749,7 @@ and exprAux vars (state: State) = function
             | Type.TReference ->
                 let llTy = State.ExtractValue state f Ref.llTy in
                 let llTy = state.Bitcast llTy (pointerType RTType.llType) in
-                let llTy = state.Load llTy [intn 0] in
+                let llTy = state.Load llTy [intn 0L] in
                 let p = State.ExtractValue state llTy ((uint32)RTType.print) in
                 let tyP = Type.TFunction([tyF], Type.TUnit) in
                 let vars = addVal ("p", (p, tyP)) vars in
@@ -2569,7 +2762,7 @@ and exprAux vars (state: State) = function
             | TReference ->
                 let llTy = State.ExtractValue state f Ref.llTy in
                 let llTy = state.Bitcast llTy (pointerType RTType.llType) in
-                let llTy = state.Load llTy [intn 0] in                
+                let llTy = state.Load llTy [intn 0L] in                
                 let p = State.ExtractValue state llTy ((uint32)RTType.visit) in
                 state, (p, RTType.tyVisit)
             | ty -> invalidArg "Visit of non-reference" ""
@@ -2592,10 +2785,10 @@ and exprAux vars (state: State) = function
         ignore(state.Call ((uint32)CallConv.CCallConv) Extern.exit [f]);
         state, (unitn, Type.TUnit)
     | Load(ptr, ty) ->
-        state, (state.Load ptr [intn 0], ty)
+        state, (state.Load ptr [intn 0L], ty)
     | Store(ptr, f) ->
         let state, (f, tyF) = expr vars state f in
-        state.Store ptr [intn 0] f;
+        state.Store ptr [intn 0L] f;
         state, (unitn, Type.TUnit)
     | AddressOf f ->
         let state, (f, tyF) = expr vars state f in
@@ -2611,7 +2804,7 @@ and exprAux vars (state: State) = function
             match tyF, ty with
             | Type.TInt, Type.TArray tyElt ->
                 let f = state.PtrOfInt f stringType in
-                state, (mkRef state (mkArrayType tyElt) (intn 1) f nulln, ty)
+                state, (mkRef state (mkArrayType tyElt) (intn 1L) f nulln, ty)
             | Type.TReference, Type.TArray _ | Type.TArray _, Type.TReference -> state, (f, ty)
             | _ -> invalidArg "Magic of non-(int-reference)" "";
         end
@@ -2620,7 +2813,7 @@ and exprAux vars (state: State) = function
         typeCheck "Return" tyRet tyF;
         state.GcRestore();
         if (isStruct tyF) then begin
-            state.Store state.Sret [intn 0] f;
+            state.Store state.Sret [intn 0L] f;
             state.Ret unitn;
         end else
             state.Ret f;
@@ -2630,7 +2823,7 @@ and exprAux vars (state: State) = function
         if not(isRefType tyF) then
             invalidArg "GetMark of non-reference" "";
         let mark = State.ExtractValue state f Ref.mark in
-        let mark = state.Load mark [intn 0] in
+        let mark = state.Load mark [intn 0L] in
         let mark = LLGC.buildZExt state.Bb mark intType "int_of_mark" in
         state, (mark, Type.TInt)
     | SetMark(f, n) ->
@@ -2638,9 +2831,9 @@ and exprAux vars (state: State) = function
         if not (isRefType tyF) then
             invalidArg "GetMark on non-reference" "";
         let mark = State.ExtractValue state f Ref.mark in
-        state.Store mark [intn 0] (int8n ((int8)n));
+        state.Store mark [intn 0L] (int8n ((int8)n));
         state, (unitn, Type.TUnit)
-    | Time -> state, (state.Time, Type.TFloat)
+    | Time -> state, (state.Time, Type.TFloat64)
     | CreateThread(f, x) ->            
         let state, (f, tyF), (x, tyX) = expr2 vars state f x in
         printfn "CreateThread<%s,%s>" (Type.toString() tyF) (Type.toString() tyX);
@@ -2658,7 +2851,7 @@ and exprAux vars (state: State) = function
             mkFun false true vars CallConv.CCallConv fName ["ptr", TInt] TUnit
                 (Unsafe
                     (Let("tfx",
-                        Get(Magic(Var "ptr", TArray(TStruct[ThreadLocal.ty; tyF; tyX])), Int 0),
+                        Get(Magic(Var "ptr", TArray(TStruct[ThreadLocal.ty; tyF; tyX])), Int 0L),
                         compound
                             [ Free(Var "ptr");
                               dPrintf("%d registered threads\n",
@@ -2677,7 +2870,7 @@ and exprAux vars (state: State) = function
                               ThreadGlobal.lock
                                 (ThreadGlobal.storeList
                                     (Apply(sequenceRemove ThreadLocal.eq ThreadLocal.ty,
-                                        [ThreadGlobal.loadList; GetThreadLocal; Int 0])));
+                                        [ThreadGlobal.loadList; GetThreadLocal; Int 0L])));
                               
                               dPrintf("%p terminating\n", [AddressOf GetThreadLocal]);
                               ThreadLocal.free GetThreadLocal;
@@ -2701,10 +2894,10 @@ and exprAux vars (state: State) = function
         typeCheck "CreateThread internal" tyT ThreadLocal.ty;
         let state, (ptr, _) =
             expr vars state
-                (Unsafe(AddressOf(Alloc(Int 1, Struct[Llvalue(t, tyT);
+                (Unsafe(AddressOf(Alloc(Int 1L, Struct[Llvalue(t, tyT);
                                                       Llvalue(f, tyF);
                                                       Llvalue(x, tyX)])))) in
-        let createThread = state.Load Extern.createThread.ptr [intn 0] in
+        let createThread = state.Load Extern.createThread.ptr [intn 0L] in
         let cf = state.Bitcast cf stringType in
         let thread = state.Call ((uint32)CallConv.CCallConv) createThread [cf; ptr] in
         state, (thread, Type.TInt)
@@ -2712,46 +2905,46 @@ and exprAux vars (state: State) = function
         let state, (f, tyF) = expr vars state f in
         typeCheck "JoinThread" tyF Type.TInt;
         let state, _ = expr vars state (enterBlockingSection()) in
-        let joinThread = state.Load Extern.joinThread.ptr [intn 0] in
+        let joinThread = state.Load Extern.joinThread.ptr [intn 0L] in
         ignore(state.Call ((uint32)CallConv.CCallConv) joinThread [f]);
         let state, _ = expr vars state (leaveBlockingSection()) in
         state, (unitn, Type.TUnit)
     | CreateMutex ->
-        let createMutex = state.Load Extern.createMutex.ptr [intn 0] in
+        let createMutex = state.Load Extern.createMutex.ptr [intn 0L] in
         let m = state.Call ((uint32)CallConv.CCallConv) createMutex [] in
         state, (m, Type.TInt)
     | UnsafeLockMutex f ->
         let state, (f, tyF) = expr vars state f in
         typeCheck "UnsafeLockMutex" tyF Type.TInt;
-        let lockMutex = state.Load Extern.lockMutex.ptr [intn 0] in
+        let lockMutex = state.Load Extern.lockMutex.ptr [intn 0L] in
         ignore(state.Call ((uint32)CallConv.CCallConv) lockMutex [f]);
         state, (unitn, Type.TUnit)
     | UnlockMutex f ->
         let state, (f, tyF) = expr vars state f in
         typeCheck "UnlockMutex" tyF Type.TInt;
-        let unlockMutex = state.Load Extern.unlockMutex.ptr [intn 0] in
+        let unlockMutex = state.Load Extern.unlockMutex.ptr [intn 0L] in
         ignore(state.Call ((uint32)CallConv.CCallConv) unlockMutex [f]);
         state, (unitn, Type.TUnit)
     | ExtGetThreadLocal ->
         //printfn "ExtGetThreadLocal";
-        let getThreadLocal = state.Load Extern.getThreadLocal.ptr [intn 0] in
+        let getThreadLocal = state.Load Extern.getThreadLocal.ptr [intn 0L] in
         let ptr = state.Call ((uint32)CallConv.CCallConv) getThreadLocal [] in
         let ptr = state.PtrOfInt ptr stringType in
         let llTy = mkArrayType ThreadLocal.internalTy in
-        state, (mkRef state llTy (intn 1) ptr nulln, ThreadLocal.ty)
+        state, (mkRef state llTy (intn 1L) ptr nulln, ThreadLocal.ty)
     | ExtSetThreadLocal f ->
         let state, (f, tyF) = expr vars state f in
         //printfn "ExtSetThreadLocal<%s,%s>" (Type.ToString() tyF) (Type.ToString() ThreadLocal.ty);
         typeCheck "ExtSetThreadLocal" tyF ThreadLocal.ty;
         let ptr = State.ExtractValue state f Ref.data in
         let ptr = state.IntOfPtr ptr in
-        let setThreadLocal = state.Load Extern.setThreadLocal.ptr [intn 0] in
+        let setThreadLocal = state.Load Extern.setThreadLocal.ptr [intn 0L] in
         ignore(state.Call ((uint32)CallConv.CCallConv) setThreadLocal [ptr]);
         state, (unitn, Type.TUnit)
     | GetThreadLocal ->
         let llTy = mkArrayType ThreadLocal.internalTy in
         let ptr = state.ThreadLocal in
-        state, (mkRef state llTy (intn 1) ptr nulln, ThreadLocal.ty)
+        state, (mkRef state llTy (intn 1L) ptr nulln, ThreadLocal.ty)
     | SetThreadLocal f ->
         let state, _ = expr vars state (ExtSetThreadLocal f) in
         let state, (tl, ty) = expr vars state ExtGetThreadLocal in
@@ -2759,12 +2952,12 @@ and exprAux vars (state: State) = function
         state.SetThreadLocal ptr, (unitn, Type.TUnit)
     | GetThreadTick ->
         let ptr = state.Bitcast state.ThreadLocal (pointerType intType) in
-        state, (state.Load ptr [intn 0], Type.TInt)
+        state, (state.Load ptr [intn 0L], Type.TInt)
     | SetThreadTick f ->
         let state, (f, tyF) = expr vars state f in
         typeCheck "SetThreadLocal" tyF Type.TInt;
         let ptr = state.Bitcast state.ThreadLocal (pointerType intType) in
-        state.Store ptr [intn 0] f;
+        state.Store ptr [intn 0L] f;
         state, (unitn, Type.TUnit)
 
 /// <summary>
@@ -2836,7 +3029,7 @@ and gcRoot vars state v ty =
         if !Options.Debug then
             printfn "gc_root %s" (Type.toString () ty);
         match ty with
-        | TUnit | TBool | TByte | TInt | TInt32 | TInt64 | TFloat | TFunction _ -> 
+        | TUnit | TBool | TInt | TInt8 | TInt16 | TInt32 | TInt64 | TUInt | TUInt8 | TUInt16 | TUInt32 | TUInt64 | TFloat32 | TFloat64 | TFunction _ -> 
             state
         | TStruct tys ->
             let f (i, state) ty =
@@ -2859,14 +3052,14 @@ and gcAlloc vars state v =
             let state, _ =
                 expr vars state
                     (Let("p", Llvalue(v, TReference),
-                        If(AddressOf(Var "p") =. Int 0, Unit,
+                        If(AddressOf(Var "p") =. Int 0L, Unit,
                             Expr.lock
                                 (Load(allocatedMutex, TInt),
                                  Let("n", Load(nAllocated, TInt),
                                     compound
                                         [ Expr.Set(Load(allocated, TArray TReference), Var "n",
                                             Var "p");
-                                          Store(nAllocated, Var "n" +. Int 1) ]))))) in
+                                          Store(nAllocated, Var "n" +. Int 1L) ]))))) in
             state
 
 /// <summary>
@@ -2969,7 +3162,7 @@ and def vars = function
         
         let handler k (state:State) =
             if not !Options.StackHandler then k state else
-                let size = 16384 in
+                let size = 16384L in
                 let stack = state.Alloca (arrayType i8Type ((uint32)size)) in
                 let stack = state.Bitcast stack stringType in
 
@@ -2986,7 +3179,7 @@ and def vars = function
                     let state = mkState false llvmF in
                     String.iter
                         (fun c ->
-                            let charCode = (int)c
+                            let charCode = (int64)c
                             ignore(state.Call ((uint32)CallConv.CCallConv) Extern.putchar [intn charCode]))
                         "Stack overflow";
                     let _ = state.Call ((uint32)CallConv.CCallConv) Extern.exit [int32n 1] in
@@ -3013,13 +3206,13 @@ and def vars = function
                         let state = 
                             handler 
                                 (fun state ->
-                                    let startTime = Llvalue(state.Time, TFloat)
+                                    let startTime = Llvalue(state.Time, TFloat64)
                                     let state, (f, tyF) =
                                         expr vars state
                                             (compound 
-                                                [ Store(suspendTime, Float 0.0);
-                                                  Store(markTime, Float 0.0);
-                                                  Store(sweepTime, Float 0.0);
+                                                [ Store(suspendTime, Float64 0.0);
+                                                  Store(markTime, Float64 0.0);
+                                                  Store(sweepTime, Float64 0.0);
                                                   f ])
                                     let f = 
                                         compound 
@@ -3035,9 +3228,9 @@ and def vars = function
                                         expr vars state
                                             (Printf ("%gs total; %gs suspend; %gs mark; %gs sweep\n",
                                                 [   Time -. startTime;
-                                                    Load(suspendTime, TFloat);
-                                                    Load(markTime, TFloat);
-                                                    Load(sweepTime, TFloat) ] )) in
+                                                    Load(suspendTime, TFloat64);
+                                                    Load(markTime, TFloat64);
+                                                    Load(sweepTime, TFloat64) ] )) in
                                     state)
                                 state in
                             returnx vars state Unit TUnit) in
@@ -3105,7 +3298,7 @@ and defVisit vars name c ty =
 /// <param name="v">value</param> 
 /// <returns>expr</returns>                                                                                                                                                                                                            
 and visit vars v = function
-    | TUnit | TBool | TByte | TInt | TInt32 | TInt64 | TFloat | TFunction _ -> Unit, vars
+    | TUnit | TBool | TInt | TInt8 | TInt16 | TInt32 | TInt64 | TUInt | TUInt8 | TUInt16 | TUInt32 | TUInt64 | TFloat32 | TFloat64 | TFunction _ -> Unit, vars
     | TStruct tys ->
         let f (i, (fs, vars)) ty =
             let f, vars = visit vars (GetValue(v, i)) ty in
@@ -3137,11 +3330,11 @@ and defVisitArray vars ty =
                     (If(Var "i" =. Length(Var "a"), Unit,
                         compound
                             [ body;
-                              Apply(Var f, [Var "a"; Var "i" +. Int 1]) ])))
+                              Apply(Var f, [Var "a"; Var "i" +. Int 1L]) ])))
         mkFun true true vars cc f [ "a", TReference ] TUnit
             (Unsafe
                 (Apply(Llvalue(llVisitAux, TFunction([TArray ty; TInt], TUnit)),
-                    [Magic(Var "a", TArray ty); Int 0])))
+                    [Magic(Var "a", TArray ty); Int 0L])))
 
 /// <summary>
 /// Define a function to print a boxed value.
@@ -3174,12 +3367,12 @@ and defPrintArray vars ty =
             (Unsafe
                 (compound
                     [ Print(Get(Var "a", Var "i"));
-                      If(Var "i" <. Length(Var "a") -. Int 1,
-                        If(Var "i" =. Int 5,
+                      If(Var "i" <. Length(Var "a") -. Int 1L,
+                        If(Var "i" =. Int 5L,
                            Printf("; ..", []),
                            compound
                             [ Printf ("; ", []);
-                              Apply(Var aux, [Var "a"; Var "i" +. Int 1]) ]),
+                              Apply(Var aux, [Var "a"; Var "i" +. Int 1L]) ]),
                         Unit)])) in
     let result = 
      mkFun false true vars cc f ["x", TReference] TUnit
@@ -3187,9 +3380,9 @@ and defPrintArray vars ty =
             (Let("a", Magic(Var "x", TArray ty),
                 compound
                     [ Printf("[|", []);
-                      If(Length(Var "a") =. Int 0, Unit,
+                      If(Length(Var "a") =. Int 0L, Unit,
                         Apply(Llvalue(aux2, TFunction([TArray ty; TInt], TUnit)),
-                            [Var "a"; Int 0]));
+                            [Var "a"; Int 0L]));
                       Printf("|]", [])]))) in
     result
 
@@ -3318,10 +3511,10 @@ and fill vars ty =
                                     "i", TInt;
                                     "j", TInt] TUnit
             (Unsafe
-                (If(Var "j" -. Var "i" <. Int 2,
+                (If(Var "j" -. Var "i" <. Int 2L,
                     If(Var "i" =. Var "j", Unit,
                         Expr.Set(Var "a", Var "i", Var "x")),
-                    Let("m", Var "i" +. (Var "j" -. Var "i") /. Int 2,
+                    Let("m", Var "i" +. (Var "j" -. Var "i") /. Int 2L,
                         compound
                             [ Apply(Var f, [Var "a"; Var "x"; Var "i"; Var "m"]);
                               Apply(Var f, [Var "a"; Var "x"; Var "m"; Var "j"]) ])))) in
@@ -3349,7 +3542,7 @@ and sequenceRemove eq ty =
                   Var "seq" ],
             If(eq (Var "x") (Sequence.get(Var "seq", Var "i")),
                 Sequence.removeAt(Var "seq", Var "i"),
-                Apply(Var f, [Var "seq"; Var "x"; Var "i" +. Int 1])))) in
+                Apply(Var f, [Var "seq"; Var "x"; Var "i" +. Int 1L])))) in
     Llvalue(llvmF, TFunction([Sequence.ty ty; ty; TInt], Sequence.ty ty))
             
 
@@ -3375,15 +3568,15 @@ let init() =
                         expr vars state (Printf("init_runtime()\n", [])) in
                     let str s =
                         let str = state.DefineGlobal "str" (constStringNNT llContext s) in
-                        state.Gep str [int32n 0; intn 0] in
+                        state.Gep str [int32n 0; intn 0L] in
                     let libRuntime = 
                         state.Call ((uint32)CallConv.CCallConv) Extern.dlopen
-                            [str "./libfshlvmruntime.so"; intn 1] in
+                            [str "./libfshlvmruntime.so"; intn 1L] in
                     let state, _ = 
                         let libRuntime = state.IntOfPtr libRuntime in
                         expr vars state
                             (Unsafe
-                                (If(Llvalue(libRuntime, TInt) =. Int 0,
+                                (If(Llvalue(libRuntime, TInt) =. Int 0L,
                                     compound
                                         [Printf("ERROR: libfshlvmruntime.so not found\n", []);
                                          dPrintf("dlopen return value: %d\n",[(Llvalue(libRuntime, TInt))]);
@@ -3397,15 +3590,15 @@ let init() =
                                 (Printf("Dynamically loading externs..\n", [])) in
                     let loadFn (ll:Extern.DlfnObject) f = 
                         let ptr = state.Call ((uint32)CallConv.CCallConv) Extern.dlsym [libRuntime; str f] in
-                        state.Store ll.ptr [intn 0] (state.Bitcast ptr ll.ty) in
+                        state.Store ll.ptr [intn 0L] (state.Bitcast ptr ll.ty) in
                     Extern.loadFns loadFn;
-                    ignore(state.Call ((uint32)CallConv.CCallConv) (state.Load Extern.init.ptr [intn 0]) []);
+                    ignore(state.Call ((uint32)CallConv.CCallConv) (state.Load Extern.init.ptr [intn 0L]) []);
                     let n = Options.MaxDepth in
                     let state, _ =
                         expr vars state
                             (Unsafe
                                 (compound [ dPrintf("Storing empty global thread list...\n",[]);
-                                            ThreadGlobal.storeList(Sequence.empty(Int 0));
+                                            ThreadGlobal.storeList(Sequence.empty(Int 0L));
                                             dPrintf("Registering main thread...\n", []);
                                             Let("thread", ThreadLocal.make,
                                                 compound
@@ -3448,7 +3641,7 @@ let boot(): t list =
         // its child references onto the visit stack.
         let markOne p =
             Let("p", p,
-                If(getMark(Var "p") =. Int 1, Unit,
+                If(getMark(Var "p") =. Int 1L, Unit,
                     compound
                         [ setMark(Var "p", 1);
                           Apply(Visit(Var "p"), [Var "p"]) ]))
@@ -3458,8 +3651,8 @@ let boot(): t list =
           // reference and mark it.
           TLUnsafeFunction
             ("gc_mark_3", [], TUnit,
-             Let("n", Load(nVisit, TInt) -. Int 1,
-                If(Var "n" <. Int 0, Unit,
+             Let("n", Load(nVisit, TInt) -. Int 1L,
+                If(Var "n" <. Int 0L, Unit,
                     Let("a", Load(visitStack, TArray TReference),
                         compound
                             [ Store(nVisit, Var "n");
@@ -3472,9 +3665,9 @@ let boot(): t list =
              If(Var "i" =. Sequence.count(Var "stack"), Unit,
                 compound
                     [ Let("p", Sequence.get(Var "stack", Var "i"),
-                        If(AddressOf(Var "p") =. Int 0, Unit,
+                        If(AddressOf(Var "p") =. Int 0L, Unit,
                             markOne(Var "p")));
-                      Apply(Var "gc_mark_2", [Var "stack"; Var "i" +. Int 1]) ]));
+                      Apply(Var "gc_mark_2", [Var "stack"; Var "i" +. Int 1L]) ]));
 
           // Mark each shadow stack and then mark the whole heap.
           TLUnsafeFunction
@@ -3486,13 +3679,13 @@ let boot(): t list =
                         [ dPrintf("Marking %d roots from %p\n",
                             [Sequence.count
                                 (ThreadLocal.stackOf
-                                    (Get(Sequence.get(Var "a", Var "i"), Int 0)));
+                                    (Get(Sequence.get(Var "a", Var "i"), Int 0L)));
                              AddressOf(Sequence.get(Var "a", Var "i"))]);
                           Apply(Var "gc_mark_2",
                             [ ThreadLocal.stackOf
-                                (Get(Sequence.get(Var "a", Var "i"), Int 0));
-                                Int 0 ]);
-                          Apply(Var "gc_mark", [Var "i" +. Int 1]) ])));
+                                (Get(Sequence.get(Var "a", Var "i"), Int 0L));
+                                Int 0L ]);
+                          Apply(Var "gc_mark", [Var "i" +. Int 1L]) ])));
 
           // Search the allocated list for unmarked references and free them,
           // shrinking the allocated list if it is non-empty by overwriting the
@@ -3505,15 +3698,15 @@ let boot(): t list =
                     Let("a", Load(allocated, TArray TReference),
                         Let("p", Get(Var "a", Var "i"),
                             Let("i",
-                                If(getMark(Var "p") =. Int 1,
+                                If(getMark(Var "p") =. Int 1L,
                                     compound
                                         [ setMark(Var "p", 0);
-                                          Var "i" +. Int 1],
+                                          Var "i" +. Int 1L],
                                     compound
                                         [ Free(Var "p");
                                           Expr.Set(Var "a", Var "i",
-                                              Get(Var "a", Var "n" -. Int 1));
-                                          Store(nAllocated, Var "n" -. Int 1);
+                                              Get(Var "a", Var "n" -. Int 1L));
+                                          Store(nAllocated, Var "n" -. Int 1L);
                                           Var "i" ]),
                                 Apply(Var "gc_sweep", [Var "i"])))))));
 
@@ -3525,7 +3718,7 @@ let boot(): t list =
                    Bool true,
                    Let("t", Sequence.get(Var "a", Var "i"),
                         If(ThreadLocal.eq(Var "t") GetThreadLocal,
-                            Apply(Var "gc_suspend_2", [Var "i" +. Int 1]),
+                            Apply(Var "gc_suspend_2", [Var "i" +. Int 1L]),
                             If(ThreadLocal.loadState(Var "t") =. Int ThreadState.run,
                                 compound
                                     [ dPrintf("%d/%d %p waiting for %p\n",
@@ -3534,7 +3727,7 @@ let boot(): t list =
                                          AddressOf GetThreadLocal;
                                          AddressOf(Var "t")]);
                                       Let("", Apply(Var "gc_suspend_2",
-                                                    [Var "i" +. Int 1]),
+                                                    [Var "i" +. Int 1L]),
                                           Bool false) ],
                                 compound
                                     [ dPrintf("%d/%d %p not waiting for %p\n",
@@ -3543,14 +3736,14 @@ let boot(): t list =
                                          AddressOf GetThreadLocal;
                                          AddressOf(Var "t")]);
                                       Apply(Var "gc_suspend_2",
-                                        [Var "i" +. Int 1]) ]))))));
+                                        [Var "i" +. Int 1L]) ]))))));
             
           TLExtern("usleep", [TInt], TInt);
             
           // Loop until all threads have suspended themselves.
           TLUnsafeFunction
             ("gc_suspend", [], TUnit,
-             If(ThreadGlobal.lock(Apply(Var "gc_suspend_2", [Int 0])),
+             If(ThreadGlobal.lock(Apply(Var "gc_suspend_2", [Int 0L])),
                 Unit,
                 compound
                     [ Apply(Var "gc_suspend", []) ]));
@@ -3563,18 +3756,18 @@ let boot(): t list =
                 compound
                     (fs @
                         [ printf("Took %gs", [Time -. Var "time"]);
-                          Store(t, Load(t, TFloat) +. Time -. Var "time") ]))
+                          Store(t, Load(t, TFloat64) +. Time -. Var "time") ]))
            if not !Options.GcEnabled then compound [] else
             compound
                 [
                     dPrintf("GC suspending...\n", []);
                     time suspendTime [ Apply(Var "gc_suspend", []) ];
                     dPrintf("GC marking...\n", []);
-                    time markTime [ Apply(Var "gc_mark", [Int 0]) ];
+                    time markTime [ Apply(Var "gc_mark", [Int 0L]) ];
                     dPrintf("GC sweeping...\n", []);
-                    time sweepTime [ Apply(Var "gc_sweep", [Int 0]) ];
+                    time sweepTime [ Apply(Var "gc_sweep", [Int 0L]) ];
                     dPrintf("GC done. Live: %d\n\n", [Load(nAllocated, TInt)]);
-                    Store(quota, Int 256 +. Int 2 *. Load(nAllocated, TInt));
+                    Store(quota, Int 256L +. Int 2L *. Load(nAllocated, TInt));
                     dPrintf("GC finished. Restarting %d mutators with quota %d.\n",
                         [Sequence.count(ThreadGlobal.loadList); Load(quota, TInt)]);
                     ThreadGlobal.lock(ThreadGlobal.storeState ThreadState.run);
@@ -3600,17 +3793,17 @@ let boot(): t list =
                     ThreadGlobal.lock
                         (If(ThreadGlobal.loadState =. Int ThreadState.run,
                             If(Load(nAllocated, TInt) <=. Load(quota, TInt),
-                                Int 0,
+                                Int 0L,
                                 compound
                                     [ dPrintf("Suspending all other thread %p\n",
                                         [AddressOf(Var "tl")]);
                                       ThreadGlobal.storeState ThreadState.suspend;
-                                      Int 1 ]),
-                                Int 2)),
+                                      Int 1L ]),
+                                Int 2L)),
                     compound
-                        [ If(Var "status" =. Int 0,
+                        [ If(Var "status" =. Int 0L,
                              Unit,
-                             If(Var "status" =. Int 1,
+                             If(Var "status" =. Int 1L,
                                 Apply(Var "gc", []),
                                 compound
                                     [ dPrintf("%p suspending itself\n",
@@ -3620,7 +3813,7 @@ let boot(): t list =
                                       Apply(Var "spin", []);
                                       dPrintf("%p resuming itself\n",
                                               [AddressOf(Var "tl")]) ]));
-                          SetThreadTick(Int 0);
+                          SetThreadTick(Int 0L);
                         ])));
         ]
 
@@ -3649,7 +3842,7 @@ let save varsx fileName =
             (fun vars state ->
                 let state = state.SetGc false in
                 let call llF = 
-                    ignore(state.Call ((uint32)CallConv.CCallConv) llF [intn 0]) in
+                    ignore(state.Call ((uint32)CallConv.CCallConv) llF [intn 0L]) in
                 List.iter call !evalFunctions;
                 returnx vars state Unit TUnit) in
     let verify = verifyModule M LLVM.Generated.Analysis.VerifierFailureAction.PrintMessageAction in  

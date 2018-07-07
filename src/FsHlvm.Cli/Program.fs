@@ -79,12 +79,12 @@ let list ns =
       
       TLFunction("List.init", ["t", TReference; "n", TInt], TReference,
                     Let("t", cons (Var "n") (Var "t"),
-                        If(Var "n" =. Int 0, Var "t",
-                           Apply(Var "List.init", [Var "t"; Var "n" -. Int 1]))))
+                        If(Var "n" =. Int 0L, Var "t",
+                           Apply(Var "List.init", [Var "t"; Var "n" -. Int 1L]))))
       
       listFoldLeft TInt TInt;
       
-      TLExpr(Apply(Var "List.init", [nil; Int 10])) ] @
+      TLExpr(Apply(Var "List.init", [nil; Int 10L])) ] @
         List.map
             (fun n ->
                TLExpr
@@ -92,7 +92,7 @@ let list ns =
                     [ Printf("\nList.init and fold over %d elements\n", [Int n]);
                       Let("list", Apply(Var "List.init", [nil; Int n]),
                           Apply(Var "List.foldLeft",
-                                [Var "add"; Int 0; Var "list"])) ]))
+                                [Var "add"; Int 0L; Var "list"])) ]))
             ns
                  
 [<EntryPoint>]
@@ -134,7 +134,7 @@ let main argv =
                 eprintfn "Option '%s' is unrecognized" x
                 parseCommandLineRec xs in
         parseCommandLineRec (List.ofArray args)
-        createEval "list.bc" (list [10]);
+        createEval "list.bc" (list [10L]);
 
     main argv
 

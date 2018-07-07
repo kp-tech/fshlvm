@@ -44,17 +44,10 @@ open Type
 open Expr
 open RLType
 
-let testEval name defs = 
-    Options.Debug := false;
-    Options.CompileOnly := true;
-    let vars = createVars () in
-    let varsx = ref vars in
-    varsx := List.fold def (init()) (boot());
-    List.iter (KPTech.FsHlvm.Core.eval varsx) defs;
-    KPTech.FsHlvm.Core.save varsx name;
+let testEval name defs = createEval name defs
 
 let ( |> ) x f = f x
-let floatOfInt x = FloatOfInt(EFloat.Float, x)
+let floatOfInt x = FloatOfInt(EFloat.Float64, x)
 
 let nil = Construct("Nil", Unit)
 
@@ -66,7 +59,7 @@ let fill ty =
       If(Var "i" <. Length(Var "a"),
          compound
            [ Set(Var "a", Var "i", Var "x");
-             Apply(Var "fill", [Var "a"; Var "x"; Var "i" +. Int 1]) ],
+             Apply(Var "fill", [Var "a"; Var "x"; Var "i" +. Int 1L]) ],
          Unit))]
 
 // Note: Run only one test case at a time (!), because FsHlvm require proper inicialization, and the compiler also has internal mutable state
@@ -110,7 +103,7 @@ type public exprTests() =
         let exprPrintfFloatN n =
                [TLExpr
                  (compound
-                    [ Printf("\exprPrintfFloatN: (%f)\n", [Float n]) ] )] in
+                    [ Printf("\exprPrintfFloatN: (%f)\n", [Float64 n]) ] )] in
 
         testEval "exprPrintfFloatN.bc" (exprPrintfFloatN n);
         shouldEqual true true;       
@@ -169,7 +162,7 @@ type public exprTests() =
                         Printf("\nInteger add function: funIntAddNM (%d) (%d): %d\n", [Int n; Int m; Var "r"]))
                    ] )]
 
-        testEval "funIntAddNM.bc" (funIntAddNM 1 2);
+        testEval "funIntAddNM.bc" (funIntAddNM 1L 2L);
         shouldEqual true true;
 
     [<Fact>]
@@ -178,13 +171,13 @@ type public exprTests() =
           let nVar = Var "n" in
           let mVar = Var "m" in
           [TLFunction
-              ("funFloatAddNM", ["n", TFloat; "m", TFloat], TFloat,
+              ("funFloatAddNM", ["n", TFloat64; "m", TFloat64], TFloat64,
                nVar +. mVar) ] @
           [TLExpr
              (compound
                 [ Let("r", 
-                    Apply(Var "funFloatAddNM", [Float n; Float m]),
-                        Printf("\nInteger add function: funIntAddNM (%f) (%f): %f\n", [Float n; Float m; Var "r"]))
+                    Apply(Var "funFloatAddNM", [Float64 n; Float64 m]),
+                        Printf("\nInteger add function: funIntAddNM (%f) (%f): %f\n", [Float64 n; Float64 m; Var "r"]))
                    ] )]
 
         testEval "funFloatAddNM.bc" (funFloatAddNM 1.0 2.0);
@@ -195,7 +188,7 @@ type public applicationTests() =
     [<Fact>]
     member x.``boehm`` () =
         let boehm =
-          let n = 1048576 in
+          let n = 1048576L in
           [ TLFunction
               ("fill", [ "a", TArray TInt;
                          "rand", TInt;
@@ -205,21 +198,21 @@ type public applicationTests() =
                     [ Set(Var "a", Var "i", Var "rand");
                       Apply(Var "fill",
                             [Var "a";
-                             Var "rand" *. Int 1664525 +. Int 1013904223;
-                             Var "i" +. Int 1]) ],
+                             Var "rand" *. Int 1664525L +. Int 1013904223L;
+                             Var "i" +. Int 1L]) ],
                   Unit));
 
             TLFunction("loop", [ "i", TInt ], TUnit,
-                      If(Var "i" <. Int 1, Unit,
-                         Let("", Alloc(Var "i", Byte 0),
-                             Apply(Var "loop", [ Var "i" -. Int 1 ]))));
+                      If(Var "i" <. Int 1L, Unit,
+                         Let("", Alloc(Var "i", UInt8 0uy),
+                             Apply(Var "loop", [ Var "i" -. Int 1L ]))));
 
             TLExpr
               (compound
-                 [ Let("p", Alloc(Int n, Int 0),
+                 [ Let("p", Alloc(Int n, Int 0L),
                        compound
-                         [ Apply(Var "fill", [Var "p"; Int 1; Int 0]);
-                           Apply(Var "loop", [Int 32768]) ]) ]) ] in
+                         [ Apply(Var "fill", [Var "p"; Int 1L; Int 0L]);
+                           Apply(Var "loop", [Int 32768L]) ]) ]) ] in
                          
         testEval "boehm.bc" (boehm);
         shouldEqual true true;
@@ -233,7 +226,7 @@ type public applicationTests() =
             [ TLFunction
                 ("last", ["a", TArray TBool; "i", TInt], TInt,
                  If(Get(Var "a", Var "i"), Var "i",
-                    Apply(Var "last", [Var "a"; Var "i" -. Int 1])));
+                    Apply(Var "last", [Var "a"; Var "i" -. Int 1L])));
 
               TLFunction
                 ("loop2", ["a", TArray TBool; "i", TInt; "di", TInt], TUnit,
@@ -248,20 +241,20 @@ type public applicationTests() =
                  If(Var "i" =. Length(Var "a"), Unit,
                     compound
                       [ If(Get(Var "a", Var "i"),
-                           Apply(Var "loop2", [Var "a"; Int 2 *. Var "i"; Var "i"]),
+                           Apply(Var "loop2", [Var "a"; Int 2L *. Var "i"; Var "i"]),
                            Unit);
-                        Apply(Var "loop1", [Var "a"; Var "i" +. Int 1]) ])) ] @
+                        Apply(Var "loop1", [Var "a"; Var "i" +. Int 1L]) ])) ] @
             List.map
                 (fun i ->
                    TLExpr(Let("a", Alloc(Int i, Bool false),
                              compound
                                [ Printf("\nSieve of Eratosthenes\n", []);
-                                 Apply(Var "fill", [Var "a"; Bool true; Int 0]);
-                                 Apply(Var "loop1", [Var "a"; Int 2]);
+                                 Apply(Var "fill", [Var "a"; Bool true; Int 0L]);
+                                 Apply(Var "loop1", [Var "a"; Int 2L]);
                                  Apply(Var "last",
-                                       [Var "a"; Length(Var "a") -. Int 1]) ])))
+                                       [Var "a"; Length(Var "a") -. Int 1L]) ])))
                 is in
-        testEval "sieve.bc" (sieve [1000]);
+        testEval "sieve.bc" (sieve [1000L]);
         shouldEqual true true;
 
 
@@ -271,8 +264,8 @@ type public applicationTests() =
           let n = Var "n" in
           [TLFunction
               ("fib", ["n", TInt], TInt,
-               If(n >. Int 1,
-                  Apply(Var "fib", [n -. Int 2]) +. Apply(Var "fib", [n -. Int 1]),
+               If(n >. Int 1L,
+                  Apply(Var "fib", [n -. Int 2L]) +. Apply(Var "fib", [n -. Int 1L]),
                   n)) ] @
             List.map
                 (fun n ->
@@ -281,7 +274,7 @@ type public applicationTests() =
                         [ Printf("\nInteger Fibonacci function: fib(%d)\n", [Int n]);
                           Apply(Var "fib", [Int n]) ])) 
                 ns in
-        testEval "fib.bc" (fib [10]);
+        testEval "fib.bc" (fib [10L]);
         shouldEqual true true;
 
     [<Fact>]
@@ -289,14 +282,14 @@ type public applicationTests() =
         let ffib ns =
             let n = Var "n" in
             [TLFunction
-                ("ffib", ["n", TFloat], TFloat,
-                   If(n >. Float 1.0,
-                      Apply(Var "ffib", [n -. Float 2.0]) +.
-                        Apply(Var "ffib", [n -. Float 1.0]),
+                ("ffib", ["n", TFloat64], TFloat64,
+                   If(n >. Float64 1.0,
+                      Apply(Var "ffib", [n -. Float64 2.0]) +.
+                        Apply(Var "ffib", [n -. Float64 1.0]),
                             n)) ] @
                 List.map
                     (fun n ->
-                       let n = Float n in
+                       let n = Float64 n in
                            TLExpr
                              (compound
                                 [ Printf("\nFloating-point Fibonacci function: fib(%f)\n", [n]);
@@ -310,16 +303,16 @@ type public applicationTests() =
         let mandelbrot ns =
           [ TLFunction
               ("pixel", ["n", TInt;
-                         "zr", TFloat; "zi", TFloat;
-                         "cr", TFloat; "ci", TFloat], TUnit,
-               If(Var "n" =. Int 65536, Printf(" ", []),
-                  If(Var "zr" *. Var "zr" +. Var "zi" *. Var "zi" >=. Float 4.0,
+                         "zr", TFloat64; "zi", TFloat64;
+                         "cr", TFloat64; "ci", TFloat64], TUnit,
+               If(Var "n" =. Int 65536L, Printf(" ", []),
+                  If(Var "zr" *. Var "zr" +. Var "zi" *. Var "zi" >=. Float64 4.0,
                      Printf(".", []),
                      Apply(Var "pixel",
-                           [Var "n" +. Int 1;
+                           [Var "n" +. Int 1L;
                             Var "zr" *. Var "zr" -.
                               Var "zi" *. Var "zi" +. Var "cr";
-                            Float 2.0 *. Var "zr" *. Var "zi" +. Var "ci";
+                            Float64 2.0 *. Var "zr" *. Var "zi" +. Var "ci";
                             Var "cr"; Var "ci"]))));
 
             TLFunction
@@ -327,54 +320,54 @@ type public applicationTests() =
                If(Var "i" >. Var "n", Unit,
                   compound
                     [ Apply(Var "pixel",
-                            [Int 0;
-                             Float 0.0; Float 0.0;
-                             Float 2.0 *. floatOfInt(Var "i") /. floatOfInt(Var "n") -.
-                               Float 1.5;
-                             Float 2.0 *. floatOfInt(Var "j") /. floatOfInt(Var "n") -.
-                               Float 1.0]);
-                      Apply(Var "row", [Var "i" +. Int 1; Var "j"; Var "n"])]));
+                            [Int 0L;
+                             Float64 0.0; Float64 0.0;
+                             Float64 2.0 *. floatOfInt(Var "i") /. floatOfInt(Var "n") -.
+                               Float64 1.5;
+                             Float64 2.0 *. floatOfInt(Var "j") /. floatOfInt(Var "n") -.
+                               Float64 1.0]);
+                      Apply(Var "row", [Var "i" +. Int 1L; Var "j"; Var "n"])]));
 
             TLFunction
               ("col", ["j", TInt; "n", TInt], TUnit,
                If(Var "j" >. Var "n", Unit,
                   compound
-                    [ Apply(Var "row", [Int 0; Var "j"; Var "n"]);
+                    [ Apply(Var "row", [Int 0L; Var "j"; Var "n"]);
                       Printf("\n", []);
-                      Apply(Var "col", [Var "j" +. Int 1; Var "n"])])) ] @
+                      Apply(Var "col", [Var "j" +. Int 1L; Var "n"])])) ] @
             List.map
                 (fun n ->
                    TLExpr
                      (compound
                         [ Printf("\nMandelbrot with inline complex arithmetic\n", []);
-                          Apply(Var "col", [Int 0; Int n]) ]))
+                          Apply(Var "col", [Int 0L; Int n]) ]))
                 ns
-        testEval "mandelbrot.bc" (mandelbrot [80]);
+        testEval "mandelbrot.bc" (mandelbrot [80L]);
         shouldEqual true true;
 
     [<Fact>]
     member x.``mandelbrot2`` () =
         let mandelbrot2 ns =
-          let complex = TStruct[TFloat; TFloat] in
+          let complex = TStruct[TFloat64; TFloat64] in
           let re z = GetValue(Var z, 0) in
           let im z = GetValue(Var z, 1) in
-          [ TLFunction("znorm2", ["z", complex], TFloat,
+          [ TLFunction("znorm2", ["z", complex], TFloat64,
                       re "z" *. re "z" +. im "z" *. im "z");
 
             TLFunction("zsqr", ["z", complex], complex,
                       Struct[re "z" *. re "z" -. im "z" *. im "z";
-                             Float 2.0 *. re "z" *. im "z"]);
+                             Float64 2.0 *. re "z" *. im "z"]);
 
             TLFunction("zadd", ["z1", complex; "z2", complex], complex,
                       Struct[re "z1" +. re "z2"; im "z1" +. im "z2"]);
 
             TLFunction
               ("pixel", ["n", TInt; "z", complex; "c", complex], TUnit,
-               If(Var "n" =. Int 65536, Printf(" ", []),
-                  If(Apply(Var "znorm2", [Var "z"]) >=. Float 4.0,
+               If(Var "n" =. Int 65536L, Printf(" ", []),
+                  If(Apply(Var "znorm2", [Var "z"]) >=. Float64 4.0,
                      Printf(".", []),
                      Apply(Var "pixel",
-                           [Var "n" +. Int 1;
+                           [Var "n" +. Int 1L;
                             Apply(Var "zadd", [Apply(Var "zsqr", [Var "z"]); Var "c"]);
                             Var "c"]))));
 
@@ -383,63 +376,63 @@ type public applicationTests() =
                If(Var "i" >. Var "n", Unit,
                   compound
                     [ Apply(Var "pixel",
-                            [Int 0;
-                             Struct[Float 0.0; Float 0.0];
-                             Struct[Float 2.0 *. floatOfInt(Var "i") /.
-                                      floatOfInt(Var "n") -. Float 1.5;
-                                    Float 2.0 *. floatOfInt(Var "j") /.
-                                      floatOfInt(Var "n") -. Float 1.0]]);
-                      Apply(Var "row", [Var "i" +. Int 1; Var "j"; Var "n"])]));
+                            [Int 0L;
+                             Struct[Float64 0.0; Float64 0.0];
+                             Struct[Float64 2.0 *. floatOfInt(Var "i") /.
+                                      floatOfInt(Var "n") -. Float64 1.5;
+                                    Float64 2.0 *. floatOfInt(Var "j") /.
+                                      floatOfInt(Var "n") -. Float64 1.0]]);
+                      Apply(Var "row", [Var "i" +. Int 1L; Var "j"; Var "n"])]));
 
             TLFunction
               ("col", ["j", TInt; "n", TInt], TUnit,
                If(Var "j" >. Var "n", Unit,
                   compound
-                    [ Apply(Var "row", [Int 0; Var "j"; Var "n"]);
+                    [ Apply(Var "row", [Int 0L; Var "j"; Var "n"]);
                       Printf("\n", []);
-                      Apply(Var "col", [Var "j" +. Int 1; Var "n"])])) ] @
+                      Apply(Var "col", [Var "j" +. Int 1L; Var "n"])])) ] @
             List.map
                 (fun n ->
                    TLExpr
                      (compound
                         [ Printf("\nMandelbrot with complex arithmetic functions\n", []);
-                          Apply(Var "col", [Int 0; Int n]) ]))
+                          Apply(Var "col", [Int 0L; Int n]) ]))
                 ns
 
-        testEval "mandelbrot2.bc" (mandelbrot2 [80]);
+        testEval "mandelbrot2.bc" (mandelbrot2 [80L]);
         shouldEqual true true;
 
     [<Fact>]
     member x.``tco`` () =
         let tco n  =
           [ TLFunction("even", ["odd", TFunction([TInt], TInt); "n", TInt], TInt,
-                      Apply(Var "odd", [Var "n" +. Int 1]));
+                      Apply(Var "odd", [Var "n" +. Int 1L]));
 
             TLFunction("odd", ["n", TInt], TInt,
                       If(Var "n" <. Int n,
-                         Apply(Var "even", [Var "odd"; Var "n" +. Int 1]),
+                         Apply(Var "even", [Var "odd"; Var "n" +. Int 1L]),
                          Var "n"));
 
             TLExpr
               (compound
                  [ Printf("\nTesting TCO across a higher-order function\n", []);
-                   Apply(Var "even", [Var "odd"; Int 0]) ])] in
+                   Apply(Var "even", [Var "odd"; Int 0L]) ])] in
 
-        testEval "tco.bc" (tco 1000000000);
+        testEval "tco.bc" (tco 1000000000L);
         shouldEqual true true;
 
     [<Fact>]
     member x.``trig`` () =
         let trig  =
-          let triple = TStruct[TFloat; TFloat; TFloat] in
-          [ TLExtern("sin", [TFloat], TFloat);
+          let triple = TStruct[TFloat64; TFloat64; TFloat64] in
+          [ TLExtern("sin", [TFloat64], TFloat64);
 
-            TLExtern("cos", [TFloat], TFloat);
+            TLExtern("cos", [TFloat64], TFloat64);
 
-            TLFunction("test", ["f", TFunction([TFloat], TFloat)], triple,
-                      Struct[Apply(Var "f", [Float 0.1]);
-                             Apply(Var "f", [Float 0.2]);
-                             Apply(Var "f", [Float 0.3])]);
+            TLFunction("test", ["f", TFunction([TFloat64], TFloat64)], triple,
+                      Struct[Apply(Var "f", [Float64 0.1]);
+                             Apply(Var "f", [Float64 0.2]);
+                             Apply(Var "f", [Float64 0.3])]);
 
             TLExpr
               (compound
@@ -460,7 +453,7 @@ type public applicationTests() =
                                      "xs", TArray ty2], ty1,
                         If(Var "n" <. Length(Var "xs"),
                            Apply(Var "Array.fold_aux",
-                                 [Var "n" +. Int 1;
+                                 [Var "n" +. Int 1L;
                                   Var "f";
                                   Apply(Var "f", [Var "y"; Get(Var "xs", Var "n")]);
                                   Var "xs"]),
@@ -470,27 +463,27 @@ type public applicationTests() =
                                        "y", ty1;
                                        "xs", TArray ty2], ty1,
                         Apply(Var "Array.fold_aux",
-                              [Int 0; Var "f"; Var "y"; Var "xs"])) ]
+                              [Int 0L; Var "f"; Var "y"; Var "xs"])) ]
           in
 
-          fold (TStruct[TFloat; TFloat]) TFloat @
-            fill TFloat @
-            [ TLFunction("f", ["x", TStruct[TFloat; TFloat];
-                              "y", TFloat], TStruct[TFloat; TFloat],
+          fold (TStruct[TFloat64; TFloat64]) TFloat64 @
+            fill TFloat64 @
+            [ TLFunction("f", ["x", TStruct[TFloat64; TFloat64];
+                              "y", TFloat64], TStruct[TFloat64; TFloat64],
                         Struct[GetValue(Var "x", 0) +.
-                                 Var "y" /. (Float 1.0 +. GetValue(Var "x", 1));
-                               GetValue(Var "x", 1) +. Float 1.]) ] @
+                                 Var "y" /. (Float64 1.0 +. GetValue(Var "x", 1));
+                               GetValue(Var "x", 1) +. Float64 1.]) ] @
             List.map
                 (fun n ->
                    TLExpr
-                     (Let("xs", Alloc(Int n, Float 1.0),
+                     (Let("xs", Alloc(Int n, Float64 1.0),
                           compound
                             [ Printf("\nArray.fold over %d elements\n", [Int n]);
                               Apply(Var "Array.fold",
-                                    [Var "f"; Struct[Float 0.; Float 0.]; Var "xs"]) ])))
+                                    [Var "f"; Struct[Float64 0.; Float64 0.]; Var "xs"]) ])))
                 ns
 
-        testEval "fold.bc" (fold [1000]);
+        testEval "fold.bc" (fold [1000L]);
         shouldEqual true true;
 
 
@@ -530,12 +523,12 @@ type public applicationTests() =
               
               TLFunction("List.init", ["t", TReference; "n", TInt], TReference,
                         Let("t", cons (Var "n") (Var "t"),
-                            If(Var "n" =. Int 0, Var "t",
-                               Apply(Var "List.init", [Var "t"; Var "n" -. Int 1]))));
+                            If(Var "n" =. Int 0L, Var "t",
+                               Apply(Var "List.init", [Var "t"; Var "n" -. Int 1L]))));
               
               listFoldLeft TInt TInt;
               
-              TLExpr(Apply(Var "List.init", [nil; Int 10])) ] @
+              TLExpr(Apply(Var "List.init", [nil; Int 10L])) ] @
                 List.map
                     (fun n ->
                        TLExpr
@@ -543,7 +536,7 @@ type public applicationTests() =
                             [ Printf("\nList.init and fold over %d elements\n", [Int n]);
                               Let("list", Apply(Var "List.init", [nil; Int n]),
                                   Apply(Var "List.foldLeft",
-                                        [Var "add"; Int 0; Var "list"])) ]))
+                                        [Var "add"; Int 0L; Var "list"])) ]))
                     ns
-        testEval "list.bc" (list [1000]);
+        testEval "list.bc" (list [1000L]);
         shouldEqual true true;
