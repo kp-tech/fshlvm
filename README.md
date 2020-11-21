@@ -42,7 +42,7 @@ Requires FSHlvm fshlvmruntime shared library
 
 apt install llvm-10-dev libllvm10
 
-### Installing CLANG-3.8
+### Installing CLANG-10
 
 apt install clang-10
 
