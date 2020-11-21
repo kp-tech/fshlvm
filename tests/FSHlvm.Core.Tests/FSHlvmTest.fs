@@ -31,14 +31,14 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ---------------------------------------------------------------------------
 
-module KPTech.FsHlvm.Core.Tests.FsHlvmTest
+module KPTech.FSHlvm.Core.Tests.FSHlvmTest
 
 open System
 open Xunit
 open FsUnit
 
 open Printf
-open KPTech.FsHlvm.Core
+open KPTech.FSHlvm.Core
 
 open Type
 open Expr
@@ -62,7 +62,7 @@ let fill ty =
              Apply(Var "fill", [Var "a"; Var "x"; Var "i" +. Int 1L]) ],
          Unit))]
 
-// Note: Run only one test case at a time (!), because FsHlvm require proper inicialization, and the compiler also has internal mutable state
+// Note: Run only one test case at a time (!), because FSHlvm require proper inicialization, and the compiler also has internal mutable state
 //opt-3.8 -tailcallelim -O3 <aout.bc >aoutopt.bc
 //llc-3.8 -tailcallopt aoutopt.bc -o aoutopt.s
 //g++ -g aoutopt.s -lsigsegv -ldl -lm -o aoutopt

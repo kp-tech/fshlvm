@@ -1,5 +1,5 @@
 ﻿// ---------------------------------------------------------------------------
-// Copyright (c) 2014-2017, Zoltan Podlovics, KP-Tech Kft. All Rights Reserved.
+// Copyright (c) 2014-2020, Zoltan Podlovics, KP-Tech Kft. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0. See LICENSE.md in the 
 // project root for license information.
@@ -31,7 +31,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ---------------------------------------------------------------------------
-module KPTech.FsHlvm.Core
+module KPTech.FSHlvm.Core
 
 open System
 
@@ -227,6 +227,12 @@ module Options = begin
     /// The maximum number of times a recursive function will be unrolled
     /// </summary>                
     let Unroll = 8
+    
+    /// <summary>
+    /// Target
+    /// </summary>
+    let Target = ref "x86_64-pc-linux-gnu"
+    
 end
     
 let rec listToString f sep () = function
@@ -862,7 +868,7 @@ module Expr = begin
                      Printf("\n", []);
                      body ])
     
-    exception FsHlvmException
+    exception FSHlvmException
 
     /// <summary>
     /// check whether the f is a leaf (no longer rewrite)
@@ -871,7 +877,7 @@ module Expr = begin
     /// <returns>expr</returns>                                                
     let isLeaf f =
         let rec r = function
-            | Apply _ -> raise FsHlvmException
+            | Apply _ -> raise FSHlvmException
             | f -> rewrite r f in
         try ignore(r f); true with e -> false
 
@@ -1624,13 +1630,13 @@ let markTime = makeGlobalVar "mark_time" (float64f 0.0) M
 let sweepTime = makeGlobalVar "sweep_time" (float64f 0.0) M
 
 /// <summary>
-/// Default calling convention used by FsHlvm.
+/// Default calling convention used by FSHlvm.
 /// </summary>      
 /// <returns>cc</returns>                                                                                                                                                                                                                   
 let cc = LLGC.CallConv.CCallConv
 
 /// <summary>
-/// Mapping from bound variable names to their LLVM values and FsHlvm types.
+/// Mapping from bound variable names to their LLVM values and FSHlvm types.
 /// </summary>      
 /// <returns>list</returns>                                                                                                                                                                                                                   
 type vars = 
@@ -1655,15 +1661,15 @@ open Microsoft.FSharp.Collections
 /// Bound types (including internal types such as wrapper reference types for arrays).
 /// </summary>      
 /// <returns>type map</returns>                                                                                                                                                                                                                   
-let types = new KPTech.FsHlvm.Collections.HashMultiMap<_, _>(13, HashIdentity.Structural)
+let types = new KPTech.FSHlvm.Collections.HashMultiMap<_, _>(13, HashIdentity.Structural)
 
 /// <summary>
 /// Container of internal functions such as visitors to traverse the heap.
 /// </summary>      
 /// <returns>function map</returns>                                                                                                                                                                                                                   
-let functions = new KPTech.FsHlvm.Collections.HashMultiMap<_, _>(13, HashIdentity.Structural)
+let functions = new KPTech.FSHlvm.Collections.HashMultiMap<_, _>(13, HashIdentity.Structural)
 
-exception FsHlvmException
+exception FSHlvmException
 
 /// <summary>
 /// find a type in the global type map
@@ -1673,7 +1679,7 @@ exception FsHlvmException
 let findType (name:string) =
     match types.TryFind name with
     | Some (lt, t) -> (lt, t)
-    | None -> raise FsHlvmException
+    | None -> raise FSHlvmException
 
 /// <summary>
 /// add a variable the the global variable list
@@ -2147,7 +2153,7 @@ let mkRef (state: State) llty tag data mark =
 /// </summary>      
 /// <returns>string->string</returns>                                                                                                                                                                                                                   
 let uniq =
-    let m = new KPTech.FsHlvm.Collections.HashMultiMap<string,unit>(1, HashIdentity.Structural) in
+    let m = new KPTech.FSHlvm.Collections.HashMultiMap<string,unit>(1, HashIdentity.Structural) in
     let rec aux s =
         match m.TryFind s with
         | Some x -> 
@@ -2187,7 +2193,7 @@ let typeCheck err ty1 ty2 =
 /// <summary>
 /// Constant string literals are memoized here.
 /// </summary>      
-let stringCache = new KPTech.FsHlvm.Collections.HashMultiMap<string,LLGT.ValueRef>(13, HashIdentity.Structural)
+let stringCache = new KPTech.FSHlvm.Collections.HashMultiMap<string,LLGT.ValueRef>(13, HashIdentity.Structural)
         
 /// <summary>
 /// Memoize a string
@@ -3835,7 +3841,7 @@ let eval varsx stmt =
 /// <param name="vars">vars reference</param> 
 /// <param name="fileName">bitcode filename to save</param> 
 /// <returns>unit</returns>                                                                                                                                                                                                            
-let save varsx fileName =
+let save varsx (fileName: string) =
     let fName = "main" in
     let _ =
         defun false !varsx CallConv.CCallConv fName [] TUnit
@@ -3846,9 +3852,10 @@ let save varsx fileName =
                 List.iter call !evalFunctions;
                 returnx vars state Unit TUnit) in
     let verify = verifyModule M LLVM.Generated.Analysis.VerifierFailureAction.PrintMessageAction in  
-    let pm = LLGC.createPassManager() in
-    LLVM.Generated.Core.setTarget M "x86_64-pc-linux-gnu";
-    ignore(LLVM.Generated.Transforms.Scalar.addTailCallEliminationPass pm);
+    let pm = LLGC.createPassManager()
+    LLVM.Generated.Core.setTarget M !Options.Target    
+    //disable as it will complain to: Pass 'Tail Call Elimination' is not initialized.
+    //ignore(LLVM.Generated.Transforms.Scalar.addTailCallEliminationPass pm);
     ignore(LLVM.Generated.BitWriter.writeBitcodeToFile M fileName);
 
 let createEval name defs = 

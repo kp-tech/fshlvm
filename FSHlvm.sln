@@ -5,13 +5,13 @@ VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{3D8565B2-6605-4186-8526-C0EEF6A14C74}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FsHlvm.Core", "src\FsHlvm.Core\FsHlvm.Core.fsproj", "{17A5F19C-7B19-4DCB-8037-0D5977DE09B6}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSHlvm.Core", "src\FSHlvm.Core\FSHlvm.Core.fsproj", "{17A5F19C-7B19-4DCB-8037-0D5977DE09B6}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FsHlvm.Cli", "src\FsHlvm.Cli\FsHlvm.Cli.fsproj", "{73654A44-A47A-4E48-8786-272C9EE00989}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSHlvm.Cli", "src\FSHlvm.Cli\FSHlvm.Cli.fsproj", "{73654A44-A47A-4E48-8786-272C9EE00989}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{E3FC74BA-3D6E-4D49-BFD2-5EA10D9582ED}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FsHlvm.Core.Tests", "tests\FsHlvm.Core.Tests\FsHlvm.Core.Tests.fsproj", "{907CB8D7-B9EE-447C-840E-F658A532DC0A}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSHlvm.Core.Tests", "tests\FSHlvm.Core.Tests\FSHlvm.Core.Tests.fsproj", "{907CB8D7-B9EE-447C-840E-F658A532DC0A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

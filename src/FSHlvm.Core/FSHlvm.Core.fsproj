@@ -7,7 +7,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="HashMultiMap.fs" />
-    <Compile Include="FsHlvm.fs" />
+    <Compile Include="FSHlvm.fs" />
   </ItemGroup>
 
   <ItemGroup>

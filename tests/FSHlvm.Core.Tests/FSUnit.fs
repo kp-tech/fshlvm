@@ -8,7 +8,7 @@
 // Apache License 2.0.
 // ---------------------------------------------------------------------------
 
-module KPTech.FsHlvm.Core.Tests.FsUnit
+module KPTech.FSHlvm.Core.Tests.FsUnit
 
     open Xunit
 

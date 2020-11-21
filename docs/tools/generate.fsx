@@ -4,19 +4,19 @@
 // --------------------------------------------------------------------------------------
 
 // Binaries that have XML documentation (in a corresponding generated XML file)
-let referenceBinaries = [ "FsHlvm.Core.dll" ]
+let referenceBinaries = [ "FSHlvm.Core.dll" ]
 // Web site location for the generated documentation
-let website = "/FsHlvm"
+let website = "/FSHlvm"
 
-let githubLink = "http://github.com/kp-tech/FsHlvm"
+let githubLink = "http://github.com/kp-tech/FSHlvm"
 
 // Specify more information about your project
 let info =
-  [ "project-name", "FsHlvm"
+  [ "project-name", "FSHlvm"
     "project-author", "Zoltan Podlovics, KP-Tech kft."
-    "project-summary", "FsHlvm is a cross-platform open-source virtual machine written in F# and uses the LLVM library for high-performance code generation."
+    "project-summary", "FSHlvm is a cross-platform open-source virtual machine written in F# and uses the LLVM library for high-performance code generation."
     "project-github", githubLink
-    "project-nuget", "http://nuget.com/packages/FsHlvm" ]
+    "project-nuget", "http://nuget.com/packages/FSHlvm" ]
 
 // --------------------------------------------------------------------------------------
 // For typical project, no changes are needed below

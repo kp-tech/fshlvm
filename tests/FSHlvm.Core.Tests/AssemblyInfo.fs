@@ -6,15 +6,15 @@
 // ---------------------------------------------------------------------------
 
 
-module KPTech.FsHlvm.Tests.AssemblyInfo
+module KPTech.FSHlvm.Tests.AssemblyInfo
 open System.Reflection
 open System.Runtime.CompilerServices
 
-[<assembly: AssemblyTitle("FsHlvm.Tests")>]
-[<assembly: AssemblyDescription("FsHlvm A High Level Virtual Machine Written In F#")>]
+[<assembly: AssemblyTitle("FSHlvm.Tests")>]
+[<assembly: AssemblyDescription("FSHlvm A High Level Virtual Machine Written In F#")>]
 [<assembly: AssemblyConfiguration("")>]
 [<assembly: AssemblyCompany("KP-Tech Kft.")>]
-[<assembly: AssemblyProduct("FsHlvm")>]
+[<assembly: AssemblyProduct("FSHlvm")>]
 [<assembly: AssemblyCopyright("All rights reserved.")>]
 [<assembly: AssemblyTrademark("")>]
 

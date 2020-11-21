@@ -1,4 +1,4 @@
-Copyright 2014-2017
+Copyright 2014-2020
 
     Zoltan Podlovics
     KP-Tech Kft.

@@ -8,7 +8,7 @@
 // Apache License 2.0.
 // ---------------------------------------------------------------------------
 
-module KPTech.FsHlvm.Tests.FsCheck
+module KPTech.FSHlvm.Tests.FsCheck
 
 open FsCheck
 open NUnit.Framework

@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Copyright (c) 2017, Zoltan Podlovics, KP-Tech Kft. All Rights Reserved.
+// Copyright (c) 2014-2020, Zoltan Podlovics, KP-Tech Kft. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0. See LICENSE.md in the 
 // project root for license information.
@@ -9,7 +9,7 @@
 // ---------------------------------------------------------------------------
 // Copyright (c) Microsoft Corporation.  All Rights Reserved.  Licensed under the Apache License, Version 2.0.  See License.txt in the project root for license information.
 // ---------------------------------------------------------------------------
-namespace KPTech.FsHlvm.Collections
+namespace KPTech.FSHlvm.Collections
 
 open System
 open System.Collections.Generic

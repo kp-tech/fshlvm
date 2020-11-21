@@ -1,6 +1,6 @@
-## FsHlvm A High Level Virtual Machine Written In F#
+## FSHlvm A High Level Virtual Machine Written In F#
 
-FsHlvm is a cross-platform open-source virtual machine with the following features:
+FSHlvm is a cross-platform open-source virtual machine with the following features:
 
 High-level DSL like language based on F#  
 Safe  
@@ -14,7 +14,7 @@ Commerce friendly
 The virtual machine is written in F# and uses the LLVM library for high-performance  
 code generation.  
 
-More information about FsHlvm are be available at:
+More information about FSHlvm are be available at:
 http://www.kp-tech.hu/en/products/fshlvm-opensource
 
 This work is based HLVM, written by Jon Harrop, Flying Frog Consultancy Ltd.  
@@ -22,34 +22,29 @@ More information about HLVM are available at: http://www.ffconsultancy.com/ocaml
 
 ## Status
 
-The `master` branch is for the latest version of FsHlvm.
+The `master` branch is for the latest version of FSHlvm.
 
 ## Build Requirements on Linux
 
-Note: .NET Core has only initial support for local dll references, and only in the recent version of SDK:
-https://github.com/dotnet/sdk/issues/120
-https://github.com/dotnet/sdk/issues/1425
-
-Requires .NET Core 2.0 preview2 (2.0.0-preview2-006497).
-Requires F# 4.1 or higher.  
+Requires .NET Core SDK 3.1.  
 Requires FSLLVM (precompiled netstandard2.0 version are available under lib/).
 
 ## Execution Requirements on Linux
 
-Tested on Ubuntu 16.04 (amd64)  
+Tested on Ubuntu 20.04 (amd64)  
 
-Requires LLVM-3.8  
-Requires CLANG-3.8  
-Requires FsHlvm fshlvmllvmwrapper shared library  
-Requires FsHlvm fshlvmruntime shared library  
+Requires LLVM-10  
+Requires CLANG-10  
+Requires FSHlvm fshlvmllvmwrapper shared library  
+Requires FSHlvm fshlvmruntime shared library  
 
-### Installing LLVM-3.8
+### Installing LLVM-10
 
-apt-get install llvm-3.8-dev libllvm3.8
+apt install llvm-10-dev libllvm10
 
 ### Installing CLANG-3.8
 
-apt-get install clang-3.8
+apt install clang-10
 
 ## How to Build
 
@@ -59,7 +54,7 @@ apt-get install clang-3.8
 
 The following command will:
 * Build the F# codebase
-* Execute the FsHlvm.Cli executable (which will generate a list llvm bitcode example list.bc)
+* Execute the FSHlvm.Cli executable (which will generate a list llvm bitcode example list.bc)
 * Optimize the list example llvm bitcode (listopt.bc)
 * Create a native executable for the list example called (listopt)
 
@@ -77,12 +72,12 @@ sh build.sh
 ```
 
 Alternative F# codebase building method:
-Linux/.NET Core: open the FsHlvm.sln project file with Visual Studio Code and build the project. This will generate the FsHlvm.Core.dll assembly for you.
+Linux/.NET Core: open the FSHlvm.sln project file with Visual Studio Code and build the project. This will generate the FSHlvm.Core.dll assembly for you.
 
 #### Build fshlvmllvmwrapper and fshlvmruntime shared library
 
 ```
-cd $FSHLVM_PATH/src/FsHlvm.Runtime
+cd $FSHLVM_PATH/src/FSHlvm.Runtime
 make
 make install
 ```
@@ -99,16 +94,16 @@ Not yet tested on Windows.
 
 ## Development Notes
 
-### Using FsHlvm in your project
+### Using FSHlvm in your project
 
-In order to use FsHlvm you will want to check the following:
+In order to use FSHlvm you will want to check the following:
 
-1. Example F# code under FsHlvm.Cli.
-2. Tests F# code under FsHlvm.Core.Tests.
+1. Example F# code under FSHlvm.Cli.
+2. Tests F# code under FSHlvm.Core.Tests.
 
 ### Editing the Project with Visual Studio, Visual Studio Code, Xamarin Studio or MonoDevelop
 
-Open `FsHlvm.sln`, and edit in modes Debug or Release. 
+Open `FSHlvm.sln`, and edit in modes Debug or Release. 
 
 ## How to Test and Validate manually
 
@@ -117,23 +112,22 @@ Open `FsHlvm.sln`, and edit in modes Debug or Release.
 Cli Test and Validation
 
 ```
-cd $FSHLVM_PATH/src/FsHlvm.Cli
-ln -sfn ../lib/libfshlvmllvmwrapper.so .
-ln -sfn ../lib/libfshlvmruntime.so .
+cd $FSHLVM_PATH/src/FSHlvm.Cli
+ln -sfn ../../lib/libfshlvmllvmwrapper.so .
+ln -sfn ../../lib/libfshlvmruntime.so .
 dotnet restore
 dotnet run -c Release
-opt-3.8 -tailcallelim -O3 < list.bc >listopt.bc
-clang-3.8 -o listopt listopt.bc -ldl
+opt-10 -tailcallelim -O3 < list.bc >listopt.bc
+clang-10 -o listopt listopt.bc -ldl
 ./listopt
 ```
 
 Additional Tests Test and Validation (each test must run individually, one by one!)
 
 ```
-cd $FSHLVM_PATH/tests/FsHlvm.Core.Tests
+cd $FSHLVM_PATH/tests/FSHlvm.Core.Tests
 ln -sfn ../../lib/libfshlvmllvmwrapper.so .
 ln -sfn ../../lib/libfshlvmruntime.so .
-ln -sfn /usr/lib/llvm-3.8/lib/libLLVM-3.8.so .
 dotnet restore
 ./run.sh
 ./ffibopt

@@ -1,5 +1,5 @@
 ﻿// ---------------------------------------------------------------------------
-// Copyright (c) 2014-2017, Zoltan Podlovics, KP-Tech Kft. All Rights Reserved.
+// Copyright (c) 2014-2020, Zoltan Podlovics, KP-Tech Kft. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0. See LICENSE.md in the 
 // project root for license information.
@@ -32,9 +32,9 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ---------------------------------------------------------------------------
 
-module KPTech.FsHlvm.Main.Program
+module KPTech.FSHlvm.Main.Program
 
-open KPTech.FsHlvm.Core
+open KPTech.FSHlvm.Core
 
 open Type
 open Expr
@@ -100,8 +100,8 @@ let main argv =
     printfn "Args: %A" argv
     let main (args:string array) =
         let printUsage () = 
-                printfn "About: FsHlvm example program (list)"
-                printfn "Usage: FsHlvm.Main options"
+                printfn "About: FSHlvm example program (list)"
+                printfn "Usage: FSHlvm.Main options"
                 printfn "Possible options:"
                 printfn "--enable-debug             enable debugging (default: disabled)"
                 printfn "--enable-jit               enable execute the code (default: disabled)"
@@ -109,6 +109,7 @@ let main argv =
                 printfn "--disable-shadow-stack     disable shadow stack (default: enabled)"
                 printfn "--disable-gc               disable garbage collector (default: enabled)"
                 printfn "--disable-tco              disable tail call elimination (default: enabled)"
+                printfn "--set-target               set target architecture (default: x86_64-pc-linux-gnu)"
 
         let rec parseCommandLineRec argList = 
             match argList with 
@@ -130,6 +131,9 @@ let main argv =
             | "--disable-tco"::xs ->
                 printfn "Tail call elimination disabled.";
                 Options.Tco := false
+            | "--set-target"::t::xs ->
+                printfn "Set target architecture to: %s" t;
+                Options.Target := t                
             | x::xs -> 
                 eprintfn "Option '%s' is unrecognized" x
                 parseCommandLineRec xs in
